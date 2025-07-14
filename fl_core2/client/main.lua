@@ -1,12 +1,11 @@
 -- ================================
--- 🚨 FL EMERGENCY SERVICES - CLIENT MAIN (FIXED)
+-- 🚨 FL EMERGENCY SERVICES - CLIENT MAIN (FIXED - NO DOUBLE IMPORTS)
 -- ================================
 
--- Wait for QBCore to be ready
+-- QBCore wird über Framework automatisch geladen, KEIN manueller Import nötig
 local QBCore = exports['qb-core']:GetCoreObject()
 
--- Wait for ox_lib to be ready
-while not lib do Wait(100) end
+-- ox_lib ist bereits über fxmanifest.lua geladen, KEIN Wait nötig
 
 -- ================================
 -- 📊 CLIENT STATE MANAGEMENT
@@ -49,21 +48,37 @@ FL = {
 -- ================================
 
 CreateThread(function()
-    -- Warte auf Spieler-Login
+    -- Warte auf Framework-Ready
     while not LocalPlayer.state.isLoggedIn do
         Wait(1000)
     end
 
+    -- Warte noch etwas länger für QBCore
+    Wait(2000)
+
     -- Initialisiere Player Data
     QBCore.Functions.GetPlayerData(function(PlayerData)
+        if not PlayerData then
+            print('^3[FL Warning]^7 PlayerData is nil, retrying...')
+            Wait(5000)
+            return
+        end
+
         FL.Player.data = PlayerData
         FL.UpdatePlayerService()
 
         -- Setup nur wenn Emergency Service
         if FL.Player.service then
             -- Warte auf Target-System
-            while not FL.Target or not FL.Target.Available do
+            local attempts = 0
+            while (not FL.Target or not FL.Target.Available) and attempts < 50 do
                 Wait(100)
+                attempts = attempts + 1
+            end
+
+            if attempts >= 50 then
+                print('^1[FL Error]^7 Target system not available after 5 seconds')
+                return
             end
 
             -- Setup Stations
@@ -88,6 +103,11 @@ end)
 -- ================================
 
 function FL.UpdatePlayerService()
+    if not FL.Player.data or not FL.Player.data.job then
+        print('^3[FL Warning]^7 No job data available')
+        return
+    end
+
     local job = FL.Player.data.job.name
     FL.Player.service = nil
 
@@ -137,7 +157,7 @@ function FL.SetupStation(service, stationId, stationData)
                     onSelect = function()
                         FL.OpenDutyMenu(service, stationId)
                     end,
-                    distance = Config.Interaction.targetDistance or 3.0
+                    distance = Config.Interaction and Config.Interaction.targetDistance or 3.0
                 }
             }
         })
@@ -161,7 +181,7 @@ function FL.SetupStation(service, stationId, stationData)
                     onSelect = function()
                         FL.OpenEquipmentMenu(service, stationId)
                     end,
-                    distance = Config.Interaction.targetDistance or 3.0
+                    distance = Config.Interaction and Config.Interaction.targetDistance or 3.0
                 }
             }
         })
@@ -186,7 +206,7 @@ function FL.SetupStation(service, stationId, stationData)
                         onSelect = function()
                             FL.OpenVehicleMenu(service, stationId, i, vehicleSpawn)
                         end,
-                        distance = Config.Interaction.targetDistance or 3.0
+                        distance = Config.Interaction and Config.Interaction.targetDistance or 3.0
                     }
                 }
             })
@@ -208,7 +228,7 @@ function FL.SetupStation(service, stationId, stationData)
                     onSelect = function()
                         FL.OpenWardrobeMenu(service, stationId)
                     end,
-                    distance = Config.Interaction.targetDistance or 3.0
+                    distance = Config.Interaction and Config.Interaction.targetDistance or 3.0
                 }
             }
         })
@@ -502,7 +522,7 @@ end
 -- ================================
 
 function FL.GetPlayerRank()
-    if not FL.Player.data.job then return 0 end
+    if not FL.Player.data or not FL.Player.data.job then return 0 end
     return FL.Player.data.job.grade.level or 0
 end
 

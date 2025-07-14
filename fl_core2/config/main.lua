@@ -4,7 +4,7 @@ Config.Debug = true -- Debug-Modus für Entwicklung
 -- ================================
 -- 🎯 FRAMEWORK EINSTELLUNGEN
 -- ================================
-Config.Locale = 'de' 
+Config.Locale = 'de'
 Config.Framework = 'qb-core'
 Config.Target = 'ox_target'
 Config.Inventory = 'qb-inventory' -- 'qb-inventory', 'ox_inventory', 'qs-inventory'
