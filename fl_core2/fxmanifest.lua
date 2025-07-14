@@ -33,9 +33,10 @@ server_scripts {
     'server/calls.lua'
 }
 
--- Client Scripts
+-- Client Scripts (REIHENFOLGE WICHTIG!)
 client_scripts {
     'client/main.lua',
+    'client/compatibility.lua',
     'client/ui.lua',
     'client/markers.lua',
     'client/vehicles.lua'
@@ -45,6 +46,7 @@ client_scripts {
 ui_page 'web/index.html'
 files {
     'web/index.html',
+    'web/debug.html',
     'web/app.js',
     'web/style.css',
     'web/assets/**/*'

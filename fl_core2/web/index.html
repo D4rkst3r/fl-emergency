@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FL Emergency - Mobile Data Terminal</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+    <div id="app" class="app-container">
+        <!-- 🎮 LOADING SCREEN -->
+        <div id="loading-screen" class="loading-screen" style="display: none;">
+            <div class="loading-content">
+                <div class="loading-spinner">
+                    <i class="fas fa-cog fa-spin"></i>
+                </div>
+                <h2>FL Emergency Services</h2>
+                <p>Mobile Data Terminal wird geladen...</p>
+            </div>
+        </div>
+
+        <!-- 📱 MAIN MDT INTERFACE -->
+        <div id="mdt-interface" class="mdt-interface">
+            <!-- 🔝 HEADER -->
+            <header class="mdt-header">
+                <div class="header-left">
+                    <div class="service-badge">
+                        <i id="service-icon" class="fas fa-shield"></i>
+                        <span id="service-name">Emergency Service</span>
+                    </div>
+                    <div class="station-info">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span id="station-name">Station Name</span>
+                    </div>
+                </div>
+
+                <div class="header-center">
+                    <div class="current-time">
+                        <span id="current-time">00:00:00</span>
+                    </div>
+                    <div class="duty-status">
+                        <i id="duty-icon" class="fas fa-clock"></i>
+                        <span id="duty-text">Im Dienst</span>
+                    </div>
+                </div>
+
+                <div class="header-right">
+                    <div class="officer-info">
+                        <i class="fas fa-user"></i>
+                        <span id="officer-name">Officer Name</span>
+                        <span id="officer-rank">Rank</span>
+                    </div>
+                    <button id="close-btn" class="btn btn-close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- 🎛️ NAVIGATION -->
+            <nav class="mdt-nav">
+                <button class="nav-btn active" data-tab="calls">
+                    <i class="fas fa-radio"></i>
+                    <span>Einsätze</span>
+                    <div id="calls-badge" class="nav-badge">0</div>
+                </button>
+                <button class="nav-btn" data-tab="map">
+                    <i class="fas fa-map"></i>
+                    <span>Karte</span>
+                </button>
+                <button class="nav-btn" data-tab="vehicles">
+                    <i class="fas fa-car"></i>
+                    <span>Fahrzeuge</span>
+                </button>
+                <button class="nav-btn" data-tab="reports">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Berichte</span>
+                </button>
+                <button class="nav-btn" data-tab="settings">
+                    <i class="fas fa-cog"></i>
+                    <span>Einstellungen</span>
+                </button>
+            </nav>
+
+            <!-- 📄 CONTENT AREA -->
+            <main class="mdt-content">
+                <!-- 🚨 CALLS TAB -->
+                <div id="calls-tab" class="tab-content active">
+                    <div class="content-header">
+                        <h2>
+                            <i class="fas fa-radio"></i>
+                            Aktive Einsätze
+                        </h2>
+                        <div class="header-actions">
+                            <button id="refresh-calls" class="btn btn-secondary">
+                                <i class="fas fa-sync"></i>
+                                Aktualisieren
+                            </button>
+                            <button id="create-call" class="btn btn-primary">
+                                <i class="fas fa-plus"></i>
+                                Einsatz erstellen
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="calls-filters">
+                        <div class="filter-group">
+                            <label>Status:</label>
+                            <select id="status-filter">
+                                <option value="all">Alle</option>
+                                <option value="pending">Ausstehend</option>
+                                <option value="assigned">Zugewiesen</option>
+                                <option value="active">Aktiv</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Priorität:</label>
+                            <select id="priority-filter">
+                                <option value="all">Alle</option>
+                                <option value="1">Hoch</option>
+                                <option value="2">Mittel</option>
+                                <option value="3">Niedrig</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="calls-container" class="calls-container">
+                        <div class="no-calls">
+                            <i class="fas fa-check-circle"></i>
+                            <h3>Keine aktiven Einsätze</h3>
+                            <p>Momentan sind keine Einsätze verfügbar</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 🗺️ MAP TAB -->
+                <div id="map-tab" class="tab-content">
+                    <div class="content-header">
+                        <h2>
+                            <i class="fas fa-map"></i>
+                            Einsatzkarte
+                        </h2>
+                    </div>
+
+                    <div class="map-container">
+                        <div class="map-placeholder">
+                            <i class="fas fa-map"></i>
+                            <p>Interaktive Karte wird geladen...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 🚗 VEHICLES TAB -->
+                <div id="vehicles-tab" class="tab-content">
+                    <div class="content-header">
+                        <h2>
+                            <i class="fas fa-car"></i>
+                            Fahrzeuge
+                        </h2>
+                    </div>
+
+                    <div id="vehicles-container" class="vehicles-container">
+                        <div class="vehicle-categories">
+                            <div class="category-btn active" data-category="all">Alle</div>
+                            <div class="category-btn" data-category="patrol">Streife</div>
+                            <div class="category-btn" data-category="special">Spezial</div>
+                        </div>
+
+                        <div class="vehicles-grid">
+                            <!-- Vehicle cards will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 📊 REPORTS TAB -->
+                <div id="reports-tab" class="tab-content">
+                    <div class="content-header">
+                        <h2>
+                            <i class="fas fa-file-alt"></i>
+                            Berichte & Statistiken
+                        </h2>
+                    </div>
+
+                    <div class="reports-container">
+                        <div class="stats-cards">
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-phone"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <h3 id="total-calls">0</h3>
+                                    <p>Gesamt Einsätze</p>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <h3 id="avg-response">0m</h3>
+                                    <p>Ø Antwortzeit</p>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <h3 id="active-officers">0</h3>
+                                    <p>Aktive Beamte</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ⚙️ SETTINGS TAB -->
+                <div id="settings-tab" class="tab-content">
+                    <div class="content-header">
+                        <h2>
+                            <i class="fas fa-cog"></i>
+                            Einstellungen
+                        </h2>
+                    </div>
+
+                    <div class="settings-container">
+                        <div class="setting-group">
+                            <h3>Benachrichtigungen</h3>
+                            <div class="setting-item">
+                                <label class="switch">
+                                    <input type="checkbox" id="sound-notifications" checked>
+                                    <span class="slider"></span>
+                                </label>
+                                <span>Sound-Benachrichtigungen</span>
+                            </div>
+                            <div class="setting-item">
+                                <label class="switch">
+                                    <input type="checkbox" id="call-alerts" checked>
+                                    <span class="slider"></span>
+                                </label>
+                                <span>Einsatz-Benachrichtigungen</span>
+                            </div>
+                        </div>
+
+                        <div class="setting-group">
+                            <h3>Anzeige</h3>
+                            <div class="setting-item">
+                                <label class="switch">
+                                    <input type="checkbox" id="dark-mode">
+                                    <span class="slider"></span>
+                                </label>
+                                <span>Dunkler Modus</span>
+                            </div>
+                            <div class="setting-item">
+                                <label class="switch">
+                                    <input type="checkbox" id="auto-refresh" checked>
+                                    <span class="slider"></span>
+                                </label>
+                                <span>Automatische Aktualisierung</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- 🎨 CALL DETAIL MODAL -->
+        <div id="call-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="call-modal-title">Einsatz Details</h2>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="call-info">
+                        <div class="info-row">
+                            <label>Einsatz-ID:</label>
+                            <span id="call-id"></span>
+                        </div>
+                        <div class="info-row">
+                            <label>Typ:</label>
+                            <span id="call-type"></span>
+                        </div>
+                        <div class="info-row">
+                            <label>Priorität:</label>
+                            <span id="call-priority"></span>
+                        </div>
+                        <div class="info-row">
+                            <label>Status:</label>
+                            <span id="call-status"></span>
+                        </div>
+                        <div class="info-row">
+                            <label>Beschreibung:</label>
+                            <span id="call-description"></span>
+                        </div>
+                        <div class="info-row">
+                            <label>Zugewiesene Einheiten:</label>
+                            <div id="assigned-units"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="assign-btn" class="btn btn-primary">
+                        <i class="fas fa-user-plus"></i>
+                        Zuweisen
+                    </button>
+                    <button id="waypoint-btn" class="btn btn-secondary">
+                        <i class="fas fa-map-marker-alt"></i>
+                        GPS
+                    </button>
+                    <button id="complete-btn" class="btn btn-success">
+                        <i class="fas fa-check"></i>
+                        Abschließen
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🎮 AUDIO ELEMENTS -->
+        <audio id="notification-sound" preload="auto">
+            <source src="sounds/notification.mp3" type="audio/mpeg">
+        </audio>
+        <audio id="alert-sound" preload="auto">
+            <source src="sounds/alert.mp3" type="audio/mpeg">
+        </audio>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>

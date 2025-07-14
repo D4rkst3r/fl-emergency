@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FL Emergency - DEBUG</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .debug-container {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 800px;
+            width: 90%;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .status {
+            font-size: 1.2rem;
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+        }
+
+        .success {
+            color: #2ecc71;
+        }
+
+        .error {
+            color: #e74c3c;
+        }
+
+        .warning {
+            color: #f39c12;
+        }
+
+        .info {
+            color: #3498db;
+        }
+
+        button {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: #2ecc71;
+            transform: translateY(-2px);
+        }
+
+        .close-btn {
+            background: #e74c3c;
+        }
+
+        .close-btn:hover {
+            background: #c0392b;
+        }
+
+        .debug-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .debug-info pre {
+            background: #2c3e50;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="debug-container">
+        <h1>🚨 FL Emergency Services - DEBUG</h1>
+
+        <div class="status success">✅ HTML geladen</div>
+        <div class="status success">✅ CSS funktioniert</div>
+        <div class="status" id="js-status">⏳ JavaScript wird geprüft...</div>
+        <div class="status" id="nui-status">⏳ NUI-Verbindung wird geprüft...</div>
+
+        <div class="debug-info">
+            <h3>📋 System-Info:</h3>
+            <pre id="system-info">Loading...</pre>
+        </div>
+
+        <div class="debug-info">
+            <h3>🔗 Test-Aktionen:</h3>
+            <button onclick="testNUI()">📡 NUI-Verbindung testen</button>
+            <button onclick="testConsole()">🖥️ Console-Test</button>
+            <button onclick="loadMainUI()">🚀 Haupt-UI laden</button>
+            <button onclick="closeDebug()" class="close-btn">❌ Debug schließen</button>
+        </div>
+
+        <div class="debug-info">
+            <h3>📝 Debug-Log:</h3>
+            <pre id="debug-log">Debug-Modus gestartet...\n</pre>
+        </div>
+    </div>
+
+    <script>
+        let debugLog = '';
+
+        function log(message) {
+            debugLog += new Date().toLocaleTimeString() + ': ' + message + '\n';
+            document.getElementById('debug-log').textContent = debugLog;
+            console.log('[FL Debug]', message);
+        }
+
+        function updateStatus(id, status, text) {
+            const element = document.getElementById(id);
+            element.className = 'status ' + status;
+            element.innerHTML = (status === 'success' ? '✅' : status === 'error' ? '❌' : '⚠️') + ' ' + text;
+        }
+
+        // Initialisierung
+        document.addEventListener('DOMContentLoaded', function () {
+            log('Debug-Interface geladen');
+            updateStatus('js-status', 'success', 'JavaScript funktioniert');
+
+            // System-Info sammeln
+            const systemInfo = {
+                userAgent: navigator.userAgent,
+                screen: `${screen.width}x${screen.height}`,
+                viewport: `${window.innerWidth}x${window.innerHeight}`,
+                timestamp: new Date().toISOString()
+            };
+
+            document.getElementById('system-info').textContent = JSON.stringify(systemInfo, null, 2);
+
+            // NUI-Test
+            testNUIConnection();
+        });
+
+        function testNUIConnection() {
+            log('Teste NUI-Verbindung...');
+
+            fetch(`https://${GetParentResourceName() || 'fl_core2'}/debug`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ test: true })
+            })
+                .then(response => {
+                    updateStatus('nui-status', 'success', 'NUI-Verbindung aktiv');
+                    log('NUI-Verbindung erfolgreich');
+                })
+                .catch(error => {
+                    updateStatus('nui-status', 'error', 'NUI-Verbindung fehlgeschlagen');
+                    log('NUI-Fehler: ' + error.message);
+                });
+        }
+
+        function testNUI() {
+            log('Manueller NUI-Test...');
+            testNUIConnection();
+        }
+
+        function testConsole() {
+            log('Console-Test ausgeführt');
+            console.log('🚨 FL Emergency Debug-Test');
+            console.table({
+                'Debug-Mode': true,
+                'UI-Status': 'Funktional',
+                'Resource': GetParentResourceName() || 'fl_core2'
+            });
+        }
+
+        function loadMainUI() {
+            log('Lade Haupt-UI...');
+
+            fetch(`https://${GetParentResourceName() || 'fl_core2'}/openMDT`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    service: 'fire',
+                    debug: true
+                })
+            })
+                .then(() => {
+                    log('Haupt-UI-Request gesendet');
+                })
+                .catch(error => {
+                    log('Haupt-UI-Fehler: ' + error.message);
+                });
+        }
+
+        function closeDebug() {
+            log('Debug-Interface schließen...');
+
+            fetch(`https://${GetParentResourceName() || 'fl_core2'}/closeUI`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+            })
+                .then(() => {
+                    log('Schließen-Request gesendet');
+                })
+                .catch(error => {
+                    log('Schließen-Fehler: ' + error.message);
+                });
+        }
+
+        function GetParentResourceName() {
+            return 'fl_core2'; // Fallback
+        }
+
+        // Message Handler
+        window.addEventListener('message', function (event) {
+            log('NUI Message empfangen: ' + JSON.stringify(event.data));
+        });
+    </script>
+</body>
+
+</html>

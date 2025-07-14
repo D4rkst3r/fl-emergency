@@ -54,15 +54,27 @@ CreateThread(function()
     QBCore.Functions.GetPlayerData(function(PlayerData)
         FL.Player.data = PlayerData
         FL.UpdatePlayerService()
+
+        -- Setup nur wenn Emergency Service
+        if FL.Player.service then
+            -- Initialisiere Target-System
+            FL.Target.Initialize()
+
+            -- Setup Stations
+            FL.SetupStations()
+
+            -- Starte Threads
+            FL.StartThreads()
+
+            if Config.Debug then
+                print('^2[FL Client]^7 Emergency services initialized for: ' .. FL.Player.service)
+            end
+        else
+            if Config.Debug then
+                print('^3[FL Client]^7 Player is not emergency service member, skipping initialization')
+            end
+        end
     end)
-
-    -- Setup Stations
-    FL.SetupStations()
-
-    -- Starte Threads
-    FL.StartThreads()
-
-    if Config.Debug then print('^2[FL Client]^7 Emergency services client ready') end
 end)
 
 -- ================================
@@ -675,6 +687,21 @@ RegisterCommand('mdt', function()
     end
 
     FL.OpenCallCenter(FL.Player.service)
+end)
+
+-- Debug-Command
+RegisterCommand('mdtdebug', function()
+    SetNuiFocus(true, true)
+
+    -- Öffne Debug-Interface
+    SendNUIMessage({
+        type = 'openDebug'
+    })
+
+    lib.notify({
+        type = 'info',
+        description = 'Debug-MDT geöffnet'
+    })
 end)
 
 function FL.OpenCallCenter(service)
