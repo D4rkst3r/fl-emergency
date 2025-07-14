@@ -1,40 +1,14 @@
 /**
  * ================================
- * 🚨 FL EMERGENCY - MDT STYLES
+ * 🚨 FL EMERGENCY - MDT STYLES (TABLET STYLE)
  * ================================
  */
-
-/* ================================
-   🐛 DEBUG STYLES
-   ================================ */
-
-   .debug-visible {
-    background: red !important;
-    border: 5px solid yellow !important;
-    color: white !important;
-    visibility: visible !important;
-    display: block !important;
-    opacity: 1 !important;
-    z-index: 9999 !important;
-}
-
-.debug-text {
-    font-size: 24px !important;
-    color: lime !important;
-    background: black !important;
-    padding: 20px !important;
-    position: fixed !important;
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important;
-    z-index: 99999 !important;
-}
 
 /* ================================
    🎨 CSS VARIABLES
    ================================ */
 
-:root {
+   :root {
     /* Service Colors (will be overridden by JavaScript) */
     --service-primary: #3498db;
     --service-secondary: #2980b9;
@@ -125,41 +99,90 @@ body.dark-mode {
 }
 
 body {
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-    background: transparent !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: transparent;
+    color: var(--text-primary);
+    line-height: 1.6;
+    font-size: 14px;
+    margin: 0;
+    padding: 0;
+    transition: background-color var(--transition-normal), color var(--transition-normal);
+    /* KEIN overflow hidden - GTA Hintergrund bleibt sichtbar */
 }
 
-
 /* ================================
-   🎮 MAIN LAYOUT
+   🎮 MAIN LAYOUT - FLOATING TABLET
    ================================ */
 
-   .app-container {
-    width: 100vw !important;     /* Vollbreite */
-    height: 100vh !important;    /* Vollhöhe */
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    transform: none !important;  /* Entferne Zentrierung */
+/* Nur das MDT-Tablet (KEIN Fullscreen-Hintergrund) */
+.app-container {
+    /* Tablet-Größe */
+    width: 85vw;
+    height: 85vh;
+    max-width: 1400px;
+    max-height: 900px;
+    min-width: 800px;
+    min-height: 600px;
+    
+    /* Zentriert schweben */
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    
+    /* Tablet-Styling */
+    background: var(--bg-primary);
+    border-radius: 20px;
+    box-shadow: 0 25px 80px rgba(0,0,0,0.7);
+    border: 3px solid #2c3e50;
+    
+    /* Layout */
     overflow: hidden;
-    background: rgba(0, 0, 0, 0.95) !important; /* Schwarzer Overlay */
-    border-radius: 0 !important; /* Keine runden Ecken */
-    box-shadow: none !important;
+    z-index: 999999;
     display: none; /* Versteckt bis explizit geöffnet */
-    z-index: 999999 !important;  /* Höchste Z-Index */
+    
+    /* Tablet-Animation */
+    animation: tabletSlideIn 0.4s ease-out;
+}
+
+/* Das MDT-Interface füllt den Container */
+.mdt-interface {
+    /* Füllt den ganzen Container */
+    width: 100%;
+    height: 100%;
+    
+    /* Layout */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: transparent; /* Container hat schon Background */
+}
+
+@keyframes tabletSlideIn {
+    from { 
+        opacity: 0; 
+        transform: scale(0.9) translateY(50px);
+    }
+    to { 
+        opacity: 1; 
+        transform: scale(1) translateY(0);
+    }
 }
 
 .loading-screen {
-    width: 100vw !important;
-    height: 100vh !important;
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    background: linear-gradient(135deg, var(--service-primary), var(--service-secondary)) !important;
-    z-index: 1000 !important;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, var(--service-primary), var(--service-secondary));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    border-radius: 20px;
 }
+
 .loading-content {
     text-align: center;
     color: white;
@@ -176,15 +199,6 @@ body {
     100% { transform: rotate(360deg); }
 }
 
-.mdt-interface {
-    width: 100% !important;
-    height: 100vh !important;
-    max-width: none !important;
-    max-height: none !important;
-    border-radius: 0 !important;
-    overflow: hidden;
-}
-
 /* ================================
    🔝 HEADER
    ================================ */
@@ -199,6 +213,7 @@ body {
     box-shadow: var(--shadow-md);
     position: relative;
     z-index: 100;
+    border-radius: 20px 20px 0 0; /* Runde Ecken oben */
 }
 
 .header-left, .header-right {
@@ -343,9 +358,12 @@ body {
    📄 CONTENT AREA
    ================================ */
 
-   .mdt-content {
-    height: calc(100vh - 120px) !important; /* Abzüglich Header/Nav */
+.mdt-content {
+    flex: 1;
     overflow-y: auto;
+    background: var(--bg-primary);
+    padding: var(--spacing-lg);
+    border-radius: 0 0 20px 20px; /* Runde Ecken unten */
 }
 
 .tab-content {
@@ -423,10 +441,11 @@ body {
 
 .calls-container {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
     gap: var(--spacing-lg);
-    max-height: calc(100vh - 300px);
+    max-height: calc(85vh - 300px);
     overflow-y: auto;
+    padding-right: 5px;
 }
 
 .call-card {
@@ -842,7 +861,7 @@ input:checked + .slider:before {
 .modal {
     display: none;
     position: fixed;
-    z-index: 1000;
+    z-index: 1000000;
     left: 0;
     top: 0;
     width: 100%;
@@ -1123,7 +1142,7 @@ input:checked + .slider:before {
     border-radius: var(--border-radius);
     padding: var(--spacing-md);
     box-shadow: var(--shadow-lg);
-    z-index: 1001;
+    z-index: 1000001;
     min-width: 300px;
     display: flex;
     align-items: center;
@@ -1149,33 +1168,38 @@ input:checked + .slider:before {
 }
 
 /* ================================
-   🎨 ALTERNATIVE: WINDOWED MODE
+   📱 RESPONSIVE DESIGN (TABLET SPECIFIC)
    ================================ */
 
-/* Falls du lieber Windowed Mode möchtest: */
-.app-container.windowed {
-    width: 95vw !important;
-    height: 90vh !important;
-    position: fixed !important;
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important;
-    border-radius: 15px !important;
-    background: rgba(0, 0, 0, 0.8) !important;
-    box-shadow: 0 25px 80px rgba(0,0,0,0.7) !important;
+@media (max-width: 1200px) {
+    .mdt-interface {
+        width: 90vw;
+        height: 90vh;
+        min-width: 700px;
+    }
+    
+    .calls-container {
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    }
 }
 
-
-
-/* ================================
-   📱 RESPONSIVE DESIGN
-   ================================ */
-
 @media (max-width: 768px) {
+    .app-container {
+        padding: 10px;
+    }
+    
+    .mdt-interface {
+        width: 95vw;
+        height: 95vh;
+        min-width: 320px;
+        min-height: 500px;
+    }
+    
     .mdt-header {
         flex-direction: column;
         gap: var(--spacing-md);
         text-align: center;
+        padding: var(--spacing-md);
     }
     
     .header-left, .header-right {
@@ -1184,17 +1208,20 @@ input:checked + .slider:before {
     }
     
     .mdt-nav {
-        flex-direction: column;
+        flex-wrap: wrap;
         padding: var(--spacing-sm);
     }
     
     .nav-btn {
         justify-content: center;
         padding: var(--spacing-sm);
+        min-width: 80px;
+        flex: 1;
     }
     
     .calls-container {
         grid-template-columns: 1fr;
+        max-height: calc(95vh - 280px);
     }
     
     .vehicles-grid {
@@ -1207,7 +1234,7 @@ input:checked + .slider:before {
     
     .modal-content {
         width: 95%;
-        margin: 10% auto;
+        margin: 5% auto;
     }
     
     .calls-filters {
@@ -1222,12 +1249,29 @@ input:checked + .slider:before {
     
     .call-actions {
         justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .mdt-content {
+        padding: var(--spacing-md);
     }
 }
 
 @media (max-width: 480px) {
+    .mdt-interface {
+        width: 98vw;
+        height: 98vh;
+        min-width: 300px;
+        border-radius: 10px;
+    }
+    
+    .mdt-header {
+        border-radius: 10px 10px 0 0;
+    }
+    
     .mdt-content {
-        padding: var(--spacing-md);
+        padding: var(--spacing-sm);
+        border-radius: 0 0 10px 10px;
     }
     
     .content-header {
@@ -1245,17 +1289,13 @@ input:checked + .slider:before {
         padding: var(--spacing-md);
     }
     
-    .modal-content {
-        width: 98%;
-        margin: 5% auto;
+    .nav-btn {
+        padding: var(--spacing-xs) var(--spacing-sm);
+        font-size: 0.8rem;
     }
-}
-
-@media (max-width: 1200px) {
-    .app-container {
-        width: 100vw !important;
-        height: 100vh !important;
-        border-radius: 0 !important;
+    
+    .calls-container {
+        max-height: calc(98vh - 300px);
     }
 }
 
@@ -1302,4 +1342,37 @@ input:checked + .slider:before {
 
 .bounce {
     animation: bounce 1s infinite;
+}
+
+/* ================================
+   🚨 CURSOR & FOCUS MANAGEMENT
+   ================================ */
+
+/* Verhindere Text-Selektion außer in Inputs */
+.app-container * {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+}
+
+/* Erlaube Text-Selektion nur in Inputs */
+input, textarea, [contenteditable] {
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+}
+
+/* Cursor-Styles */
+.app-container {
+    cursor: default !important;
+}
+
+button, .btn, [onclick] {
+    cursor: pointer !important;
+}
+
+input, textarea, select {
+    cursor: text !important;
 }
