@@ -7,39 +7,40 @@ version '2.0.0'
 description 'Modern Emergency Services System - Core'
 author 'FL Development Team'
 
--- Dependencies (Required)
+-- Dependencies (Required) - REIHENFOLGE WICHTIG!
 dependencies {
     'qb-core',
+    'oxmysql',
     'ox_lib',
-    'ox_target',
-    'oxmysql'
+    'ox_target'
 }
 
--- Shared Scripts (Config & Utils)
+-- Shared Scripts (Config & Utils) - ZUERST LADEN
 shared_scripts {
     '@ox_lib/init.lua',
     'config/main.lua',
     'config/services.lua',
     'config/stations.lua',
-    'config/vehicles.lua'
+    'config/vehicles.lua',
+    'shared/utils.lua' -- Falls vorhanden
 }
 
--- Server Scripts
+-- Server Scripts - REIHENFOLGE WICHTIG!
 server_scripts {
     '@oxmysql/lib/MySQL.lua',
-    'server/main.lua',
-    'server/database.lua',
-    'server/duty.lua',
-    'server/calls.lua'
+    'server/main.lua',     -- ZUERST - initialisiert FL global
+    'server/database.lua', -- ZWEITES - braucht FL
+    'server/duty.lua',     -- DRITTES - braucht FL + Database
+    'server/calls.lua'     -- LETZTES - braucht alles andere
 }
 
--- Client Scripts (REIHENFOLGE WICHTIG!)
+-- Client Scripts - REIHENFOLGE WICHTIG!
 client_scripts {
-    'client/main.lua',
-    'client/compatibility.lua',
-    'client/ui.lua',
-    'client/markers.lua',
-    'client/vehicles.lua'
+    'client/main.lua',          -- ZUERST - initialisiert FL global
+    'client/compatibility.lua', -- ZWEITES - Target-System detection
+    'client/ui.lua',            -- DRITTES - UI Functions
+    'client/markers.lua',       -- VIERTES - Marker System
+    'client/vehicles.lua'       -- LETZTES - Vehicle System
 }
 
 -- UI Files
@@ -63,5 +64,16 @@ exports {
 server_exports {
     'GetEmergencyData',
     'UpdateCallStatus',
-    'AssignPlayerToCall'
+    'AssignPlayerToCall',
+    'CreateCall',
+    'GetActiveCalls'
+}
+
+-- QBCore Integration
+server_scripts {
+    '@qb-core/import.lua' -- Optional, falls verfügbar
+}
+
+client_scripts {
+    '@qb-core/import.lua' -- Optional, falls verfügbar
 }

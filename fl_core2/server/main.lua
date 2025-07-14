@@ -5,41 +5,37 @@
 local QBCore = exports['qb-core']:GetCoreObject()
 
 -- ================================
--- 📊 GLOBALE STATE MANAGEMENT
+-- 📊 GLOBALE STATE MANAGEMENT (SICHERE FL INITIALISIERUNG)
 -- ================================
 
-FL = {
-    -- System-Status
-    System = {
-        version = Config.Version.current,
-        startTime = os.time(),
-        debug = Config.Debug
-    },
+-- Sichere FL Initialisierung ZUERST
+if not FL then FL = {} end
 
-    -- Aktive Daten
-    State = {
-        activePlayers = {},  -- Spieler im Dienst
-        activeCalls = {},    -- Aktive Einsätze
-        activeVehicles = {}, -- Gespawnte Fahrzeuge
-        stationStatus = {}   -- Status der Wachen
-    },
+FL.System = FL.System or {
+    version = Config.Version.current,
+    startTime = os.time(),
+    debug = Config.Debug
+}
 
-    -- Cache für Performance
-    Cache = {
-        playerData = {},
-        callHistory = {},
-        lastUpdate = 0
-    },
+FL.State = FL.State or {
+    activePlayers = {},  -- Spieler im Dienst
+    activeCalls = {},    -- Aktive Einsätze
+    activeVehicles = {}, -- Gespawnte Fahrzeuge
+    stationStatus = {}   -- Status der Wachen
+}
 
-    -- Event Handler
-    Events = {},
+FL.Cache = FL.Cache or {
+    playerData = {},
+    callHistory = {},
+    lastUpdate = 0
+}
 
-    -- Statistiken
-    Stats = {
-        totalCalls = 0,
-        totalPlayersServed = 0,
-        uptime = 0
-    }
+FL.Events = FL.Events or {}
+
+FL.Stats = FL.Stats or {
+    totalCalls = 0,
+    totalPlayersServed = 0,
+    uptime = 0
 }
 
 -- ================================
@@ -474,15 +470,21 @@ function FL.StartSystemThreads()
 end
 
 -- ================================
--- 📝 ADMIN COMMANDS
+-- 📝 ADMIN COMMANDS - FIXED
 -- ================================
 
 function FL.RegisterCommands()
     -- Debug Command
-    lib.addCommand('fldebug', {
-        help = 'FL Emergency Debug Information',
-        restricted = 'group.admin'
-    }, function(source, args)
+    QBCore.Commands.Add('fldebug', 'FL Emergency Debug Information', {}, false, function(source, args)
+        -- Prüfe Admin
+        if not QBCore.Functions.HasPermission(source, 'admin') then
+            TriggerClientEvent('ox_lib:notify', source, {
+                type = 'error',
+                description = 'Keine Berechtigung'
+            })
+            return
+        end
+
         local info = {
             system = FL.System,
             activePlayers = #FL.State.activePlayers,
@@ -496,68 +498,90 @@ function FL.RegisterCommands()
             multiline = true,
             args = { 'FL Debug', json.encode(info, { indent = true }) }
         })
-    end)
+    end, 'admin')
 
     -- Force Duty End
-    lib.addCommand('fldutyend', {
-        help = 'Force end duty for a player',
-        params = {
-            { name = 'id', type = 'playerId', help = 'Player ID' }
-        },
-        restricted = 'group.admin'
-    }, function(source, args)
-        local targetSource = args.id
-        local service = FL.GetPlayerService(targetSource)
+    QBCore.Commands.Add('fldutyend', 'Force end duty for a player', { { name = 'id', help = 'Player ID' } }, true,
+        function(source, args)
+            -- Prüfe Admin
+            if not QBCore.Functions.HasPermission(source, 'admin') then
+                TriggerClientEvent('ox_lib:notify', source, {
+                    type = 'error',
+                    description = 'Keine Berechtigung'
+                })
+                return
+            end
 
-        if service and FL.State.activePlayers[targetSource] then
-            FL.EndDuty(targetSource, service, 'admin_forced')
-            TriggerClientEvent('ox_lib:notify', source, {
-                type = 'success',
-                description = 'Duty ended for player ' .. targetSource
-            })
-        else
+            local targetSource = tonumber(args[1])
+            if not targetSource then
+                TriggerClientEvent('ox_lib:notify', source, {
+                    type = 'error',
+                    description = 'Ungültige Player ID'
+                })
+                return
+            end
+
+            local service = FL.GetPlayerService(targetSource)
+
+            if service and FL.State.activePlayers[targetSource] then
+                FL.EndDuty(targetSource, service, 'admin_forced')
+                TriggerClientEvent('ox_lib:notify', source, {
+                    type = 'success',
+                    description = 'Duty ended for player ' .. targetSource
+                })
+            else
+                TriggerClientEvent('ox_lib:notify', source, {
+                    type = 'error',
+                    description = 'Player not on duty'
+                })
+            end
+        end, 'admin')
+
+    -- Test Call Command - FIXED
+    QBCore.Commands.Add('testcall', 'Create a test emergency call', {
+        { name = 'service', help = 'Service (fire/police/ems)' },
+        { name = 'type',    help = 'Call type (optional)' }
+    }, true, function(source, args)
+        -- Prüfe Admin
+        if not QBCore.Functions.HasPermission(source, 'admin') then
             TriggerClientEvent('ox_lib:notify', source, {
                 type = 'error',
-                description = 'Player not on duty'
-            })
-        end
-    end)
-
-    -- Test Call Command
-    lib.addCommand('testcall', {
-        help = 'Create a test emergency call',
-        params = {
-            { name = 'service', type = 'string', help = 'Service (fire/police/ems)' },
-            { name = 'type',    type = 'string', help = 'Call type',                optional = true }
-        },
-        restricted = 'group.admin'
-    }, function(source, args)
-        local coords = GetEntityCoords(GetPlayerPed(source))
-
-        local callType = args.type or 'test_emergency'
-        local service = args.service
-
-        if not Config.Services[service] then
-            TriggerClientEvent('ox_lib:notify', source, {
-                type = 'error',
-                description = 'Invalid service'
+                description = 'Keine Berechtigung'
             })
             return
         end
 
+        local service = args[1]
+        local callType = args[2] or 'test_emergency'
+
+        if not Config.Services[service] then
+            TriggerClientEvent('ox_lib:notify', source, {
+                type = 'error',
+                description = 'Invalid service: ' .. tostring(service)
+            })
+            return
+        end
+
+        local coords = GetEntityCoords(GetPlayerPed(source))
+
+        -- Erstelle Test-Call
         TriggerEvent('fl:call:create', {
             service = service,
             type = callType,
             coords = { x = coords.x, y = coords.y, z = coords.z },
             priority = 1,
-            description = 'Test call created by admin'
+            description = 'Test call created by admin ' .. GetPlayerName(source)
         })
 
         TriggerClientEvent('ox_lib:notify', source, {
             type = 'success',
             description = 'Test call created for ' .. service
         })
-    end)
+
+        print('^2[FL Admin]^7 Test call created by ' .. GetPlayerName(source) .. ' for service: ' .. service)
+    end, 'admin')
+
+    print('^2[FL Emergency]^7 Commands registered successfully')
 end
 
 -- ================================

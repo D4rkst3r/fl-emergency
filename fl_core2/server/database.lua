@@ -2,6 +2,8 @@
 -- 🗃️ FL EMERGENCY - DATABASE MANAGEMENT
 -- ================================
 
+local QBCore = exports['qb-core']:GetCoreObject() -- FIX: QBCore initialisieren
+
 FL.Database = {}
 
 -- ================================
@@ -10,6 +12,11 @@ FL.Database = {}
 
 -- Speichere Spieler-Duty-Status
 function FL.Database.SaveDutyRecord(citizenid, service, action, data)
+    if not citizenid or not service or not action then
+        print('^1[FL Database Error]^7 Missing required parameters for SaveDutyRecord')
+        return
+    end
+
     MySQL.insert([[
         INSERT INTO fl_emergency_data (citizenid, type, service, data, expires_at)
         VALUES (?, ?, ?, ?, ?)
@@ -25,11 +32,24 @@ function FL.Database.SaveDutyRecord(citizenid, service, action, data)
             equipment = data.equipment
         }),
         action == 'start' and nil or (os.date('%Y-%m-%d %H:%M:%S', os.time() + 86400)) -- 24h für end records
-    })
+    }, function(insertId)
+        if insertId then
+            if Config.Debug then
+                print('^2[FL Database]^7 Duty record saved: ' .. insertId)
+            end
+        else
+            print('^1[FL Database Error]^7 Failed to save duty record')
+        end
+    end)
 end
 
 -- Speichere Einsatz-Daten
 function FL.Database.SaveCall(callData)
+    if not callData or not callData.service then
+        print('^1[FL Database Error]^7 Invalid call data for SaveCall')
+        return
+    end
+
     MySQL.insert([[
         INSERT INTO fl_emergency_data (citizenid, type, service, data, expires_at)
         VALUES (?, ?, ?, ?, ?)
@@ -42,12 +62,22 @@ function FL.Database.SaveCall(callData)
     }, function(insertId)
         if insertId then
             callData.dbId = insertId
+            if Config.Debug then
+                print('^2[FL Database]^7 Call saved: ' .. insertId .. ' (' .. callData.id .. ')')
+            end
+        else
+            print('^1[FL Database Error]^7 Failed to save call: ' .. callData.id)
         end
     end)
 end
 
 -- Update Einsatz-Status
 function FL.Database.UpdateCall(callId, newData)
+    if not callId or not newData then
+        print('^1[FL Database Error]^7 Missing parameters for UpdateCall')
+        return
+    end
+
     MySQL.update([[
         UPDATE fl_emergency_data
         SET data = ?, updated_at = CURRENT_TIMESTAMP
@@ -55,19 +85,34 @@ function FL.Database.UpdateCall(callId, newData)
     ]], {
         json.encode(newData),
         callId
-    })
+    }, function(affectedRows)
+        if Config.Debug and affectedRows > 0 then
+            print('^2[FL Database]^7 Call updated: ' .. callId)
+        end
+    end)
 end
 
 -- Lösche abgelaufene Einsätze
 function FL.Database.DeleteExpiredCall(callId)
+    if not callId then return end
+
     MySQL.execute([[
         DELETE FROM fl_emergency_data
         WHERE type = 'call' AND JSON_EXTRACT(data, '$.id') = ?
-    ]], { callId })
+    ]], { callId }, function(affectedRows)
+        if Config.Debug and affectedRows > 0 then
+            print('^2[FL Database]^7 Expired call deleted: ' .. callId)
+        end
+    end)
 end
 
 -- Speichere Fahrzeug-Daten
 function FL.Database.SaveVehicle(citizenid, service, vehicleData)
+    if not citizenid or not service or not vehicleData then
+        print('^1[FL Database Error]^7 Missing parameters for SaveVehicle')
+        return
+    end
+
     MySQL.insert([[
         INSERT INTO fl_emergency_data (citizenid, type, service, data, expires_at)
         VALUES (?, ?, ?, ?, ?)
@@ -83,15 +128,25 @@ function FL.Database.SaveVehicle(citizenid, service, vehicleData)
             timestamp = os.time()
         }),
         os.date('%Y-%m-%d %H:%M:%S', os.time() + 7200) -- 2 Stunden
-    })
+    }, function(insertId)
+        if Config.Debug and insertId then
+            print('^2[FL Database]^7 Vehicle saved: ' .. insertId)
+        end
+    end)
 end
 
 -- Entferne Fahrzeug aus Database
 function FL.Database.RemoveVehicle(plate)
+    if not plate then return end
+
     MySQL.execute([[
         DELETE FROM fl_emergency_data
         WHERE type = 'vehicle' AND JSON_EXTRACT(data, '$.plate') = ?
-    ]], { plate })
+    ]], { plate }, function(affectedRows)
+        if Config.Debug and affectedRows > 0 then
+            print('^2[FL Database]^7 Vehicle removed: ' .. plate)
+        end
+    end)
 end
 
 -- ================================
@@ -100,6 +155,8 @@ end
 
 -- Speichere Service-Statistiken
 function FL.Database.SaveStats(service, statsData)
+    if not service or not statsData then return end
+
     MySQL.insert([[
         INSERT INTO fl_emergency_data (citizenid, type, service, data)
         VALUES (?, ?, ?, ?)
@@ -117,6 +174,8 @@ end
 
 -- Lade Duty-Statistiken für Spieler
 function FL.Database.GetPlayerDutyStats(citizenid, callback)
+    if not citizenid or not callback then return end
+
     MySQL.query([[
         SELECT
             service,
@@ -133,6 +192,8 @@ end
 
 -- Lade Service-Statistiken
 function FL.Database.GetServiceStats(service, days, callback)
+    if not service or not days or not callback then return end
+
     MySQL.query([[
         SELECT
             DATE(created_at) as date,
@@ -154,6 +215,8 @@ end
 
 -- Lade aktive Einsätze
 function FL.Database.GetActiveCalls(service, callback)
+    if not callback then return end
+
     local query = service and [[
         SELECT * FROM fl_emergency_data
         WHERE type = 'call' AND service = ? AND (expires_at IS NULL OR expires_at > NOW())
@@ -168,9 +231,13 @@ function FL.Database.GetActiveCalls(service, callback)
         local calls = {}
         if result then
             for _, row in pairs(result) do
-                local callData = json.decode(row.data)
-                callData.dbId = row.id
-                calls[callData.id] = callData
+                local success, callData = pcall(json.decode, row.data)
+                if success and callData then
+                    callData.dbId = row.id
+                    calls[callData.id] = callData
+                else
+                    print('^1[FL Database Error]^7 Failed to decode call data for row: ' .. row.id)
+                end
             end
         end
         callback(calls)
@@ -179,6 +246,8 @@ end
 
 -- Lade aktive Spieler im Dienst
 function FL.Database.GetActivePlayers(service, callback)
+    if not callback then return end
+
     -- Finde Spieler die Dienst begonnen haben aber noch nicht beendet
     MySQL.query([[
         SELECT DISTINCT d1.citizenid, d1.service, d1.data, d1.created_at
@@ -200,14 +269,16 @@ function FL.Database.GetActivePlayers(service, callback)
         local players = {}
         if result then
             for _, row in pairs(result) do
-                local dutyData = json.decode(row.data)
-                players[row.citizenid] = {
-                    citizenid = row.citizenid,
-                    service = row.service,
-                    station = dutyData.station,
-                    startTime = dutyData.timestamp,
-                    duration = os.time() - dutyData.timestamp
-                }
+                local success, dutyData = pcall(json.decode, row.data)
+                if success and dutyData then
+                    players[row.citizenid] = {
+                        citizenid = row.citizenid,
+                        service = row.service,
+                        station = dutyData.station,
+                        startTime = dutyData.timestamp,
+                        duration = os.time() - dutyData.timestamp
+                    }
+                end
             end
         end
         callback(players)
@@ -216,6 +287,8 @@ end
 
 -- Lade Fahrzeug-Historie
 function FL.Database.GetVehicleHistory(citizenid, callback)
+    if not citizenid or not callback then return end
+
     MySQL.query([[
         SELECT * FROM fl_emergency_data
         WHERE citizenid = ? AND type = 'vehicle'
@@ -225,11 +298,14 @@ function FL.Database.GetVehicleHistory(citizenid, callback)
         local vehicles = {}
         if result then
             for _, row in pairs(result) do
-                table.insert(vehicles, {
-                    id = row.id,
-                    data = json.decode(row.data),
-                    created = row.created_at
-                })
+                local success, vehicleData = pcall(json.decode, row.data)
+                if success then
+                    table.insert(vehicles, {
+                        id = row.id,
+                        data = vehicleData,
+                        created = row.created_at
+                    })
+                end
             end
         end
         callback(vehicles)
@@ -256,7 +332,7 @@ function FL.Database.CleanupExpiredData()
     MySQL.execute([[
         DELETE FROM fl_emergency_data
         WHERE type = 'log' AND created_at < DATE_SUB(NOW(), INTERVAL ? DAY)
-    ]], { Config.Database.maxLogDays }, function(affectedRows)
+    ]], { Config.Database.maxLogDays or 30 }, function(affectedRows)
         if affectedRows > 0 and Config.Debug then
             print('^3[FL Database]^7 Cleaned up ' .. affectedRows .. ' old log records')
         end
@@ -265,6 +341,8 @@ end
 
 -- Bereinige Spieler-Daten nach Disconnect
 function FL.Database.CleanupPlayerData(citizenid)
+    if not citizenid then return end
+
     -- Markiere aktive Fahrzeuge als despawned
     MySQL.update([[
         UPDATE fl_emergency_data
@@ -286,6 +364,8 @@ end
 
 -- Generiere Duty-Report
 function FL.Database.GenerateDutyReport(service, startDate, endDate, callback)
+    if not service or not startDate or not endDate or not callback then return end
+
     MySQL.query([[
         SELECT
             citizenid,
@@ -306,6 +386,8 @@ end
 
 -- Generiere Call-Report
 function FL.Database.GenerateCallReport(service, startDate, endDate, callback)
+    if not service or not startDate or not endDate or not callback then return end
+
     MySQL.query([[
         SELECT
             JSON_EXTRACT(data, '$.type') as call_type,
@@ -331,7 +413,7 @@ end
 -- Starte Cleanup-Task
 CreateThread(function()
     while true do
-        Wait(Config.Database.cleanupInterval * 1000)
+        Wait((Config.Database.cleanupInterval or 3600) * 1000)
         FL.Database.CleanupExpiredData()
     end
 end)
@@ -374,6 +456,11 @@ exports('GetActiveCalls', function(service, callback)
 end)
 
 exports('SaveCustomData', function(citizenid, type, service, data)
+    if not citizenid or not type or not service or not data then
+        print('^1[FL Database Error]^7 Missing parameters for SaveCustomData')
+        return
+    end
+
     MySQL.insert([[
         INSERT INTO fl_emergency_data (citizenid, type, service, data)
         VALUES (?, ?, ?, ?)

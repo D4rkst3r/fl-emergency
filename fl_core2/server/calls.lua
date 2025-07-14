@@ -2,6 +2,8 @@
 -- 🚨 FL EMERGENCY - CALL SYSTEM SERVER
 -- ================================
 
+local QBCore = exports['qb-core']:GetCoreObject() -- FIX: QBCore initialisieren
+
 FL.Calls = {}
 
 -- ================================
@@ -71,6 +73,8 @@ function FL.Calls.CreateCall(data)
         priority = data.priority,
         coords = data.coords
     })
+
+    print('^2[FL Calls]^7 Call created: ' .. callId .. ' (' .. data.service .. ')') -- Debug output
 
     return callId, call
 end
@@ -497,6 +501,7 @@ end
 
 -- Call Creation Event
 RegisterNetEvent('fl:call:create', function(data)
+    print('^3[FL Calls]^7 Creating call via event:', json.encode(data)) -- Debug
     FL.Calls.CreateCall(data)
 end)
 
@@ -560,18 +565,23 @@ RegisterNetEvent('fl:call:updateStatus', function(callId, newStatus)
 end)
 
 -- ================================
--- 📝 ADMIN COMMANDS
+-- 📝 ADMIN COMMANDS - FIXED
 -- ================================
 
 -- Random Call Command
-lib.addCommand('randomcall', {
-    help = 'Generate a random emergency call',
-    params = {
-        { name = 'service', type = 'string', help = 'Service (fire/police/ems)' }
-    },
-    restricted = 'group.admin'
-}, function(source, args)
-    local service = args.service
+QBCore.Commands.Add('randomcall', 'Generate a random emergency call', {
+    { name = 'service', help = 'Service (fire/police/ems)' }
+}, true, function(source, args)
+    -- Prüfe Admin
+    if not QBCore.Functions.HasPermission(source, 'admin') then
+        TriggerClientEvent('ox_lib:notify', source, {
+            type = 'error',
+            description = 'Keine Berechtigung'
+        })
+        return
+    end
+
+    local service = args[1]
 
     if not Config.Services[service] then
         TriggerClientEvent('ox_lib:notify', source, {
@@ -594,7 +604,7 @@ lib.addCommand('randomcall', {
             description = 'Failed to create random call'
         })
     end
-end)
+end, 'admin')
 
 -- ================================
 -- 📤 EXPORTS
