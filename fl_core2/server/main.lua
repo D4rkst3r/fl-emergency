@@ -484,13 +484,13 @@ function FL.RegisterCommands()
         local Player = QBCore.Functions.GetPlayer(source)
         if not Player then return end
 
-        if not QBCore.Functions.HasPermission(source, 'admin') then
-            TriggerClientEvent('ox_lib:notify', source, {
-                type = 'error',
-                description = 'Keine Berechtigung'
-            })
-            return
-        end
+        -- if not QBCore.Functions.HasPermission(source, 'admin') then
+        --     TriggerClientEvent('ox_lib:notify', source, {
+        --        type = 'error',
+        --         description = 'Keine Berechtigung'
+        --   })
+        --     return
+        --  end
 
         local info = {
             system = FL.System,
@@ -511,13 +511,13 @@ function FL.RegisterCommands()
     QBCore.Commands.Add('fldutyend', 'Force end duty for a player', { { name = 'id', help = 'Player ID' } }, true,
         function(source, args)
             -- Prüfe Admin
-            if not QBCore.Functions.HasPermission(source, 'admin') then
-                TriggerClientEvent('ox_lib:notify', source, {
-                    type = 'error',
-                    description = 'Keine Berechtigung'
-                })
-                return
-            end
+            -- if not QBCore.Functions.HasPermission(source, 'admin') then
+            --    TriggerClientEvent('ox_lib:notify', source, {
+            --        type = 'error',
+            --        description = 'Keine Berechtigung'
+            --   })
+            --   return
+            -- end
 
             local targetSource = tonumber(args[1])
             if not targetSource then
@@ -552,13 +552,13 @@ function FL.RegisterCommands()
         local Player = QBCore.Functions.GetPlayer(source)
         if not Player then return end
 
-        if not QBCore.Functions.HasPermission(source, 'admin') then
-            TriggerClientEvent('ox_lib:notify', source, {
-                type = 'error',
-                description = 'Keine Berechtigung'
-            })
-            return
-        end
+        --if not QBCore.Functions.HasPermission(source, 'admin') then
+        --   TriggerClientEvent('ox_lib:notify', source, {
+        --       type = 'error',
+        --      description = 'Keine Berechtigung'
+        --   })
+        --   return
+        --end
 
         local service = args[1]
         local callType = args[2] or 'test_emergency'
