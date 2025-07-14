@@ -7,9 +7,18 @@
     <title>FL Emergency - Mobile Data Terminal</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta name="description" content="Professional Emergency Services Mobile Data Terminal">
+    <meta name="theme-color" content="#3498db">
 </head>
 
 <body>
+    <!-- 🎮 BROWSER DEBUG BUTTON (wird automatisch ausgeblendet im Game) -->
+    <button id="browser-test-btn" onclick="flMDT.testOpenMDT()" style="position: fixed; top: 10px; right: 10px; z-index: 999999; 
+                   background: #e74c3c; color: white; border: none; padding: 10px; 
+                   border-radius: 5px; cursor: pointer; font-weight: bold;">
+        🚨 Test MDT öffnen
+    </button>
+
     <div id="app" class="app-container">
         <!-- 🎮 LOADING SCREEN -->
         <div id="loading-screen" class="loading-screen" style="display: none;">
@@ -19,6 +28,12 @@
                 </div>
                 <h2>FL Emergency Services</h2>
                 <p>Mobile Data Terminal wird geladen...</p>
+                <div class="loading-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
+                    </div>
+                    <span class="progress-text">Initialisierung...</span>
+                </div>
             </div>
         </div>
 
@@ -53,7 +68,7 @@
                         <span id="officer-name">Officer Name</span>
                         <span id="officer-rank">Rank</span>
                     </div>
-                    <button id="close-btn" class="btn btn-close">
+                    <button id="close-btn" class="btn btn-close" title="MDT schließen">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
@@ -61,24 +76,24 @@
 
             <!-- 🎛️ NAVIGATION -->
             <nav class="mdt-nav">
-                <button class="nav-btn active" data-tab="calls">
+                <button class="nav-btn active" data-tab="calls" title="Einsätze verwalten">
                     <i class="fas fa-radio"></i>
                     <span>Einsätze</span>
                     <div id="calls-badge" class="nav-badge">0</div>
                 </button>
-                <button class="nav-btn" data-tab="map">
+                <button class="nav-btn" data-tab="map" title="Karte anzeigen">
                     <i class="fas fa-map"></i>
                     <span>Karte</span>
                 </button>
-                <button class="nav-btn" data-tab="vehicles">
+                <button class="nav-btn" data-tab="vehicles" title="Fahrzeuge verwalten">
                     <i class="fas fa-car"></i>
                     <span>Fahrzeuge</span>
                 </button>
-                <button class="nav-btn" data-tab="reports">
+                <button class="nav-btn" data-tab="reports" title="Berichte und Statistiken">
                     <i class="fas fa-file-alt"></i>
                     <span>Berichte</span>
                 </button>
-                <button class="nav-btn" data-tab="settings">
+                <button class="nav-btn" data-tab="settings" title="Einstellungen">
                     <i class="fas fa-cog"></i>
                     <span>Einstellungen</span>
                 </button>
@@ -86,7 +101,7 @@
 
             <!-- 📄 CONTENT AREA -->
             <main class="mdt-content">
-                <!-- 🚨 CALLS TAB -->
+                <!-- 🚨 CALLS TAB - ENHANCED -->
                 <div id="calls-tab" class="tab-content active">
                     <div class="content-header">
                         <h2>
@@ -94,16 +109,18 @@
                             Aktive Einsätze
                         </h2>
                         <div class="header-actions">
-                            <button id="refresh-calls" class="btn btn-secondary">
+                            <button id="refresh-calls" class="btn btn-secondary" title="Einsätze aktualisieren">
                                 <i class="fas fa-sync"></i>
                                 Aktualisieren
                             </button>
-                            <button id="create-call" class="btn btn-primary">
+                            <button id="create-call" class="btn btn-primary" title="Neuen Einsatz erstellen">
                                 <i class="fas fa-plus"></i>
                                 Einsatz erstellen
                             </button>
                         </div>
                     </div>
+
+                    <!-- 🔍 ENHANCED FILTERS -->
                     <div class="calls-filters">
                         <div class="filter-group">
                             <label>Status:</label>
@@ -111,20 +128,42 @@
                                 <option value="all">Alle</option>
                                 <option value="pending">Ausstehend</option>
                                 <option value="assigned">Zugewiesen</option>
+                                <option value="en_route">Anfahrt</option>
+                                <option value="on_scene">Vor Ort</option>
                                 <option value="active">Aktiv</option>
+                                <option value="completed">Abgeschlossen</option>
                             </select>
                         </div>
                         <div class="filter-group">
                             <label>Priorität:</label>
                             <select id="priority-filter">
                                 <option value="all">Alle</option>
-                                <option value="1">Hoch</option>
-                                <option value="2">Mittel</option>
-                                <option value="3">Niedrig</option>
+                                <option value="1">🔴 Hoch (P1)</option>
+                                <option value="2">🟡 Mittel (P2)</option>
+                                <option value="3">🔵 Niedrig (P3)</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Service:</label>
+                            <select id="service-filter">
+                                <option value="all">Alle</option>
+                                <option value="fire">🚒 Feuerwehr</option>
+                                <option value="police">🚓 Polizei</option>
+                                <option value="ems">🚑 Rettungsdienst</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Zuweisung:</label>
+                            <select id="assignment-filter">
+                                <option value="all">Alle</option>
+                                <option value="assigned_to_me">Mir zugewiesen</option>
+                                <option value="unassigned">Nicht zugewiesen</option>
+                                <option value="fully_assigned">Vollständig besetzt</option>
                             </select>
                         </div>
                     </div>
 
+                    <!-- 📋 CALLS CONTAINER (wird durch Enhanced System ersetzt) -->
                     <div id="calls-container" class="calls-container">
                         <div class="no-calls">
                             <i class="fas fa-check-circle"></i>
@@ -141,12 +180,41 @@
                             <i class="fas fa-map"></i>
                             Einsatzkarte
                         </h2>
+                        <div class="header-actions">
+                            <button class="btn btn-secondary" title="Karte zentrieren">
+                                <i class="fas fa-crosshairs"></i>
+                                Zentrieren
+                            </button>
+                            <button class="btn btn-secondary" title="Vollbild">
+                                <i class="fas fa-expand"></i>
+                                Vollbild
+                            </button>
+                        </div>
                     </div>
 
                     <div class="map-container">
                         <div class="map-placeholder">
                             <i class="fas fa-map"></i>
-                            <p>Interaktive Karte wird geladen...</p>
+                            <h3>Interaktive Karte</h3>
+                            <p>Karten-Integration wird geladen...</p>
+                            <div class="map-features">
+                                <div class="feature-item">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    <span>Einsatzorte</span>
+                                </div>
+                                <div class="feature-item">
+                                    <i class="fas fa-users"></i>
+                                    <span>Einsatzkräfte</span>
+                                </div>
+                                <div class="feature-item">
+                                    <i class="fas fa-car"></i>
+                                    <span>Fahrzeuge</span>
+                                </div>
+                                <div class="feature-item">
+                                    <i class="fas fa-building"></i>
+                                    <span>Wachen</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -158,6 +226,16 @@
                             <i class="fas fa-car"></i>
                             Fahrzeuge
                         </h2>
+                        <div class="header-actions">
+                            <button class="btn btn-secondary" title="Fahrzeuge aktualisieren">
+                                <i class="fas fa-sync"></i>
+                                Aktualisieren
+                            </button>
+                            <button class="btn btn-primary" title="Fahrzeug anfordern">
+                                <i class="fas fa-plus"></i>
+                                Fahrzeug anfordern
+                            </button>
+                        </div>
                     </div>
 
                     <div id="vehicles-container" class="vehicles-container">
@@ -165,10 +243,15 @@
                             <div class="category-btn active" data-category="all">Alle</div>
                             <div class="category-btn" data-category="patrol">Streife</div>
                             <div class="category-btn" data-category="special">Spezial</div>
+                            <div class="category-btn" data-category="support">Support</div>
                         </div>
 
                         <div class="vehicles-grid">
-                            <!-- Vehicle cards will be populated here -->
+                            <div class="no-vehicles">
+                                <i class="fas fa-car"></i>
+                                <h3>Keine Fahrzeuge verfügbar</h3>
+                                <p>Momentan sind keine Fahrzeuge gespawnt</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -180,6 +263,16 @@
                             <i class="fas fa-file-alt"></i>
                             Berichte & Statistiken
                         </h2>
+                        <div class="header-actions">
+                            <button class="btn btn-secondary" title="Daten exportieren">
+                                <i class="fas fa-download"></i>
+                                Export
+                            </button>
+                            <button class="btn btn-secondary" title="Bericht erstellen">
+                                <i class="fas fa-file-plus"></i>
+                                Neuer Bericht
+                            </button>
+                        </div>
                     </div>
 
                     <div class="reports-container">
@@ -191,6 +284,7 @@
                                 <div class="stat-content">
                                     <h3 id="total-calls">0</h3>
                                     <p>Gesamt Einsätze</p>
+                                    <small>Heute</small>
                                 </div>
                             </div>
                             <div class="stat-card">
@@ -200,6 +294,7 @@
                                 <div class="stat-content">
                                     <h3 id="avg-response">0m</h3>
                                     <p>Ø Antwortzeit</p>
+                                    <small>Letzte 24h</small>
                                 </div>
                             </div>
                             <div class="stat-card">
@@ -209,6 +304,34 @@
                                 <div class="stat-content">
                                     <h3 id="active-officers">0</h3>
                                     <p>Aktive Beamte</p>
+                                    <small>Aktuell</small>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <h3 id="success-rate">0%</h3>
+                                    <p>Erfolgsrate</p>
+                                    <small>Diese Woche</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="reports-charts">
+                            <div class="chart-container">
+                                <h3>Einsätze pro Stunde</h3>
+                                <div class="chart-placeholder">
+                                    <i class="fas fa-chart-line"></i>
+                                    <p>Diagramm wird geladen...</p>
+                                </div>
+                            </div>
+                            <div class="chart-container">
+                                <h3>Einsatztypen Verteilung</h3>
+                                <div class="chart-placeholder">
+                                    <i class="fas fa-chart-pie"></i>
+                                    <p>Diagramm wird geladen...</p>
                                 </div>
                             </div>
                         </div>
@@ -222,42 +345,144 @@
                             <i class="fas fa-cog"></i>
                             Einstellungen
                         </h2>
+                        <div class="header-actions">
+                            <button class="btn btn-secondary" title="Einstellungen zurücksetzen">
+                                <i class="fas fa-undo"></i>
+                                Zurücksetzen
+                            </button>
+                            <button class="btn btn-primary" title="Einstellungen speichern">
+                                <i class="fas fa-save"></i>
+                                Speichern
+                            </button>
+                        </div>
                     </div>
 
                     <div class="settings-container">
                         <div class="setting-group">
-                            <h3>Benachrichtigungen</h3>
+                            <h3>
+                                <i class="fas fa-bell"></i>
+                                Benachrichtigungen
+                            </h3>
                             <div class="setting-item">
                                 <label class="switch">
                                     <input type="checkbox" id="sound-notifications" checked>
                                     <span class="slider"></span>
                                 </label>
-                                <span>Sound-Benachrichtigungen</span>
+                                <div class="setting-info">
+                                    <span>Sound-Benachrichtigungen</span>
+                                    <small>Audio-Signale für neue Einsätze und Updates</small>
+                                </div>
                             </div>
                             <div class="setting-item">
                                 <label class="switch">
                                     <input type="checkbox" id="call-alerts" checked>
                                     <span class="slider"></span>
                                 </label>
-                                <span>Einsatz-Benachrichtigungen</span>
+                                <div class="setting-info">
+                                    <span>Einsatz-Benachrichtigungen</span>
+                                    <small>Pop-up Benachrichtigungen für neue Einsätze</small>
+                                </div>
+                            </div>
+                            <div class="setting-item">
+                                <label class="switch">
+                                    <input type="checkbox" id="priority-alerts">
+                                    <span class="slider"></span>
+                                </label>
+                                <div class="setting-info">
+                                    <span>Prioritäts-Alarme</span>
+                                    <small>Verstärkte Benachrichtigungen für P1 Einsätze</small>
+                                </div>
                             </div>
                         </div>
 
                         <div class="setting-group">
-                            <h3>Anzeige</h3>
+                            <h3>
+                                <i class="fas fa-palette"></i>
+                                Anzeige
+                            </h3>
                             <div class="setting-item">
                                 <label class="switch">
                                     <input type="checkbox" id="dark-mode">
                                     <span class="slider"></span>
                                 </label>
-                                <span>Dunkler Modus</span>
+                                <div class="setting-info">
+                                    <span>Dunkler Modus</span>
+                                    <small>Dunkles Theme für bessere Sicht bei Nacht</small>
+                                </div>
                             </div>
                             <div class="setting-item">
                                 <label class="switch">
                                     <input type="checkbox" id="auto-refresh" checked>
                                     <span class="slider"></span>
                                 </label>
-                                <span>Automatische Aktualisierung</span>
+                                <div class="setting-info">
+                                    <span>Automatische Aktualisierung</span>
+                                    <small>Automatisches Neuladen der Einsätze alle 5 Sekunden</small>
+                                </div>
+                            </div>
+                            <div class="setting-item">
+                                <label class="switch">
+                                    <input type="checkbox" id="compact-view">
+                                    <span class="slider"></span>
+                                </label>
+                                <div class="setting-info">
+                                    <span>Kompakte Ansicht</span>
+                                    <small>Reduzierte Darstellung für mehr Übersicht</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="setting-group">
+                            <h3>
+                                <i class="fas fa-keyboard"></i>
+                                Tastenkürzel
+                            </h3>
+                            <div class="shortcuts-list">
+                                <div class="shortcut-item">
+                                    <kbd>F5</kbd>
+                                    <span>Einsätze aktualisieren</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <kbd>Ctrl</kbd> + <kbd>1</kbd>
+                                    <span>Einsätze-Tab</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <kbd>Ctrl</kbd> + <kbd>2</kbd>
+                                    <span>Karten-Tab</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <kbd>Ctrl</kbd> + <kbd>3</kbd>
+                                    <span>Fahrzeuge-Tab</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <kbd>Esc</kbd>
+                                    <span>MDT schließen</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="setting-group">
+                            <h3>
+                                <i class="fas fa-info-circle"></i>
+                                System-Information
+                            </h3>
+                            <div class="system-info">
+                                <div class="info-item">
+                                    <label>Version:</label>
+                                    <span>FL Emergency v2.0.0</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Build:</label>
+                                    <span id="build-date">2024-12-19</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Status:</label>
+                                    <span class="status-online">Online</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Server:</label>
+                                    <span id="server-name">FL Emergency Server</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -269,14 +494,21 @@
         <div id="call-modal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h2 id="call-modal-title">Einsatz Details</h2>
-                    <button class="modal-close">&times;</button>
+                    <h2 id="call-modal-title">
+                        <i class="fas fa-info-circle"></i>
+                        Einsatz Details
+                    </h2>
+                    <button class="modal-close" title="Schließen">&times;</button>
                 </div>
                 <div class="modal-body">
                     <div class="call-info">
                         <div class="info-row">
                             <label>Einsatz-ID:</label>
                             <span id="call-id"></span>
+                        </div>
+                        <div class="info-row">
+                            <label>Service:</label>
+                            <span id="call-service"></span>
                         </div>
                         <div class="info-row">
                             <label>Typ:</label>
@@ -291,12 +523,32 @@
                             <span id="call-status"></span>
                         </div>
                         <div class="info-row">
+                            <label>Ort:</label>
+                            <span id="call-location"></span>
+                        </div>
+                        <div class="info-row">
+                            <label>Koordinaten:</label>
+                            <span id="call-coords"></span>
+                        </div>
+                        <div class="info-row">
                             <label>Beschreibung:</label>
                             <span id="call-description"></span>
                         </div>
                         <div class="info-row">
+                            <label>Melder:</label>
+                            <span id="call-reporter"></span>
+                        </div>
+                        <div class="info-row">
+                            <label>Erstellt:</label>
+                            <span id="call-created"></span>
+                        </div>
+                        <div class="info-row">
                             <label>Zugewiesene Einheiten:</label>
                             <div id="assigned-units"></div>
+                        </div>
+                        <div class="info-row">
+                            <label>Notizen:</label>
+                            <div id="call-notes"></div>
                         </div>
                     </div>
                 </div>
@@ -307,7 +559,11 @@
                     </button>
                     <button id="waypoint-btn" class="btn btn-secondary">
                         <i class="fas fa-map-marker-alt"></i>
-                        GPS
+                        GPS setzen
+                    </button>
+                    <button id="backup-btn" class="btn btn-warning">
+                        <i class="fas fa-plus-circle"></i>
+                        Verstärkung
                     </button>
                     <button id="complete-btn" class="btn btn-success">
                         <i class="fas fa-check"></i>
@@ -320,12 +576,56 @@
         <!-- 🎮 AUDIO ELEMENTS -->
         <audio id="notification-sound" preload="auto">
             <source src="sounds/notification.mp3" type="audio/mpeg">
+            <source src="sounds/notification.ogg" type="audio/ogg">
         </audio>
         <audio id="alert-sound" preload="auto">
             <source src="sounds/alert.mp3" type="audio/mpeg">
+            <source src="sounds/alert.ogg" type="audio/ogg">
         </audio>
+        <audio id="priority-alert" preload="auto">
+            <source src="sounds/priority-alert.mp3" type="audio/mpeg">
+            <source src="sounds/priority-alert.ogg" type="audio/ogg">
+        </audio>
+
+        <!-- 📊 OFFLINE INDICATOR -->
+        <div id="offline-indicator" class="offline-indicator" style="display: none;">
+            <i class="fas fa-wifi"></i>
+            <span>Verbindung getrennt</span>
+        </div>
+
+        <!-- 🔄 UPDATE NOTIFICATION -->
+        <div id="update-notification" class="update-notification" style="display: none;">
+            <div class="update-content">
+                <i class="fas fa-download"></i>
+                <span>Update verfügbar</span>
+                <button class="btn btn-sm btn-primary">Aktualisieren</button>
+                <button class="btn btn-sm btn-secondary">Später</button>
+            </div>
+        </div>
     </div>
 
+    <!-- 📱 PWA SUPPORT -->
+    <script>
+        // Service Worker für PWA (optional)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(function (registration) {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch(function (registrationError) {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+
+        // Hide browser test button in game
+        if (typeof GetParentResourceName !== 'undefined') {
+            document.getElementById('browser-test-btn').style.display = 'none';
+        }
+    </script>
+
+    <!-- 🚨 MAIN APPLICATION SCRIPT -->
     <script src="app.js"></script>
 </body>
 

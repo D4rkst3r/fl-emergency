@@ -1384,3 +1384,1206 @@ const flMDT = new FlashingLightsMDT();
 window.flMDT = flMDT;
 
 console.log("🚨 FL Emergency MDT loaded successfully!");
+
+/**
+ * ================================
+ * 🚨 FL EMERGENCY - COMPLETE CALL SYSTEM
+ * ================================
+ */
+
+// Erweitere die FlashingLightsMDT Klasse um vollständiges Call-Management
+class CallSystem {
+  constructor(mdt) {
+    this.mdt = mdt;
+    this.callHistory = [];
+    this.callFilters = {
+      status: "all",
+      priority: "all",
+      service: "all",
+      assigned: "all",
+    };
+    this.sortBy = "priority"; // 'priority', 'time', 'distance'
+    this.sortOrder = "asc";
+    this.autoRefreshCalls = true;
+    this.selectedCalls = new Set();
+
+    this.init();
+  }
+
+  init() {
+    this.setupCallEventListeners();
+    this.setupCallTimers();
+    console.log("🚨 Call System initialized");
+  }
+
+  setupCallEventListeners() {
+    // Advanced Filters
+    document.getElementById("calls-search")?.addEventListener("input", (e) => {
+      this.searchCalls(e.target.value);
+    });
+
+    // Bulk Actions
+    document.getElementById("bulk-assign")?.addEventListener("click", () => {
+      this.bulkAssignCalls();
+    });
+
+    document.getElementById("bulk-complete")?.addEventListener("click", () => {
+      this.bulkCompleteCalls();
+    });
+
+    // Sort Controls
+    document.querySelectorAll(".sort-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        this.setSortOrder(btn.dataset.sort);
+      });
+    });
+  }
+
+  setupCallTimers() {
+    // Update call timers every 30 seconds
+    setInterval(() => {
+      this.updateCallTimers();
+    }, 30000);
+  }
+
+  // ================================
+  // 🎨 ENHANCED CALL RENDERING
+  // ================================
+
+  renderEnhancedCalls() {
+    try {
+      const container = document.getElementById("calls-container");
+      if (!container) return;
+
+      const calls = Object.values(this.mdt.calls || {});
+
+      if (calls.length === 0) {
+        container.innerHTML = this.renderEmptyCallsState();
+        return;
+      }
+
+      // Apply filters and sorting
+      const filteredCalls = this.filterAndSortCalls(calls);
+
+      // Render calls with enhanced features
+      container.innerHTML = `
+        <div class="calls-header">
+          ${this.renderCallsToolbar(filteredCalls.length, calls.length)}
+        </div>
+        <div class="calls-grid">
+          ${filteredCalls
+            .map((call) => this.renderEnhancedCallCard(call))
+            .join("")}
+        </div>
+      `;
+
+      // Update badges
+      this.updateCallBadges(calls);
+    } catch (error) {
+      console.error("Error rendering enhanced calls:", error);
+    }
+  }
+
+  renderCallsToolbar(filtered, total) {
+    return `
+      <div class="calls-toolbar">
+        <div class="toolbar-left">
+          <div class="calls-counter">
+            <span class="filtered-count">${filtered}</span>
+            ${
+              filtered !== total
+                ? `von <span class="total-count">${total}</span>`
+                : ""
+            } Einsätze
+          </div>
+          <div class="view-options">
+            <button class="btn btn-sm view-btn active" data-view="grid">
+              <i class="fas fa-th"></i>
+            </button>
+            <button class="btn btn-sm view-btn" data-view="list">
+              <i class="fas fa-list"></i>
+            </button>
+            <button class="btn btn-sm view-btn" data-view="map">
+              <i class="fas fa-map"></i>
+            </button>
+          </div>
+        </div>
+        
+        <div class="toolbar-center">
+          <div class="search-container">
+            <i class="fas fa-search"></i>
+            <input type="text" id="calls-search" placeholder="Einsätze durchsuchen..." />
+            <button class="btn btn-sm" id="clear-search">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+        
+        <div class="toolbar-right">
+          <div class="sort-container">
+            <label>Sortieren:</label>
+            <select id="sort-selector">
+              <option value="priority">Priorität</option>
+              <option value="time">Zeit</option>
+              <option value="distance">Entfernung</option>
+              <option value="status">Status</option>
+            </select>
+            <button class="btn btn-sm sort-btn" data-order="asc">
+              <i class="fas fa-sort-amount-up"></i>
+            </button>
+          </div>
+          
+          <div class="bulk-actions" style="display: none;">
+            <button class="btn btn-sm btn-primary" id="bulk-assign">
+              <i class="fas fa-users"></i>
+              Zuweisen
+            </button>
+            <button class="btn btn-sm btn-success" id="bulk-complete">
+              <i class="fas fa-check"></i>
+              Abschließen
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  renderEnhancedCallCard(call) {
+    const isAssigned = this.mdt.isPlayerAssignedToCall(call);
+    const isSelected = this.selectedCalls.has(call.id);
+    const timeElapsed = this.calculateTimeElapsed(call.created);
+    const distance = this.calculateDistance(call.coords);
+    const urgencyLevel = this.calculateUrgencyLevel(call);
+
+    return `
+      <div class="call-card enhanced ${this.mdt.getPriorityClass(
+        call.priority
+      )} ${urgencyLevel}" 
+           data-call-id="${call.id}"
+           data-priority="${call.priority}"
+           data-status="${call.status}">
+        
+        <!-- Call Header -->
+        <div class="call-header">
+          <div class="call-select">
+            <input type="checkbox" class="call-checkbox" 
+                   data-call-id="${call.id}" 
+                   ${isSelected ? "checked" : ""}>
+          </div>
+          
+          <div class="call-id-section">
+            <div class="call-id">${this.mdt.escapeHtml(call.id)}</div>
+            <div class="call-time">
+              <i class="fas fa-clock"></i>
+              <span class="time-elapsed" data-created="${call.created}">
+                ${timeElapsed}
+              </span>
+            </div>
+          </div>
+          
+          <div class="call-badges">
+            <span class="priority-badge priority-${call.priority}">
+              <i class="fas fa-exclamation-triangle"></i>
+              P${call.priority}
+            </span>
+            <span class="status-badge status-${call.status}">
+              ${this.mdt.getStatusIcon(call.status)}
+              ${this.mdt.getStatusText(call.status)}
+            </span>
+            ${
+              urgencyLevel === "urgent"
+                ? '<span class="urgent-badge"><i class="fas fa-bolt"></i></span>'
+                : ""
+            }
+          </div>
+        </div>
+
+        <!-- Call Body -->
+        <div class="call-body">
+          <div class="call-type-section">
+            <div class="call-type">
+              <i class="fas fa-tag"></i>
+              <span class="type-text">${this.mdt.escapeHtml(call.type)}</span>
+              ${
+                call.subtype
+                  ? `<span class="subtype">${this.mdt.escapeHtml(
+                      call.subtype
+                    )}</span>`
+                  : ""
+              }
+            </div>
+            ${
+              distance
+                ? `<div class="call-distance">
+              <i class="fas fa-route"></i>
+              ${distance}
+            </div>`
+                : ""
+            }
+          </div>
+          
+          <div class="call-description">
+            ${this.mdt.escapeHtml(
+              call.description || "Keine Beschreibung verfügbar"
+            )}
+          </div>
+          
+          ${
+            call.location
+              ? `<div class="call-location">
+            <i class="fas fa-map-marker-alt"></i>
+            ${this.mdt.escapeHtml(call.location)}
+          </div>`
+              : ""
+          }
+          
+          <!-- Assignment Info -->
+          <div class="call-assignment">
+            <div class="assigned-units">
+              <i class="fas fa-users"></i>
+              <span class="unit-count">
+                ${(call.assigned || []).length}/${call.requiredUnits || 1}
+              </span>
+              <span class="unit-text">Einheiten</span>
+              ${
+                isAssigned
+                  ? '<span class="self-assigned"><i class="fas fa-user-check"></i>Du</span>'
+                  : ""
+              }
+            </div>
+            
+            ${
+              call.assigned && call.assigned.length > 0
+                ? `
+              <div class="assigned-list">
+                ${call.assigned
+                  .slice(0, 3)
+                  .map(
+                    (unit) =>
+                      `<span class="assigned-unit">${this.mdt.escapeHtml(
+                        unit
+                      )}</span>`
+                  )
+                  .join("")}
+                ${
+                  call.assigned.length > 3
+                    ? `<span class="more-units">+${
+                        call.assigned.length - 3
+                      }</span>`
+                    : ""
+                }
+              </div>
+            `
+                : ""
+            }
+          </div>
+          
+          <!-- Additional Info -->
+          ${
+            call.reporter
+              ? `<div class="call-reporter">
+            <i class="fas fa-phone"></i>
+            Gemeldet von: ${this.mdt.escapeHtml(call.reporter)}
+          </div>`
+              : ""
+          }
+          
+          ${
+            call.lastUpdate && call.lastUpdate !== call.created
+              ? `<div class="call-updated">
+            <i class="fas fa-edit"></i>
+            Aktualisiert: ${this.formatTime(call.lastUpdate)}
+          </div>`
+              : ""
+          }
+        </div>
+
+        <!-- Call Actions -->
+        <div class="call-actions">
+          <div class="primary-actions">
+            <button class="btn btn-sm btn-secondary" onclick="callSystem.setCallWaypoint('${
+              call.id
+            }')">
+              <i class="fas fa-map-marker-alt"></i>
+              GPS
+            </button>
+            
+            <button class="btn btn-sm ${
+              isAssigned ? "btn-danger" : "btn-primary"
+            }" 
+                    onclick="callSystem.${
+                      isAssigned ? "unassignFromCall" : "assignToCall"
+                    }('${call.id}')">
+              <i class="fas fa-${isAssigned ? "user-minus" : "user-plus"}"></i>
+              ${isAssigned ? "Entfernen" : "Zuweisen"}
+            </button>
+            
+            <button class="btn btn-sm btn-info" onclick="callSystem.openCallDetails('${
+              call.id
+            }')">
+              <i class="fas fa-info-circle"></i>
+              Details
+            </button>
+          </div>
+          
+          <div class="secondary-actions">
+            <button class="btn btn-sm btn-outline" onclick="callSystem.requestBackup('${
+              call.id
+            }')">
+              <i class="fas fa-plus-circle"></i>
+              Verstärkung
+            </button>
+            
+            ${
+              isAssigned
+                ? `
+              <button class="btn btn-sm btn-warning" onclick="callSystem.updateCallStatus('${call.id}')">
+                <i class="fas fa-edit"></i>
+                Status
+              </button>
+              
+              <button class="btn btn-sm btn-success" onclick="callSystem.completeCall('${call.id}')">
+                <i class="fas fa-check"></i>
+                Abschließen
+              </button>
+            `
+                : ""
+            }
+          </div>
+        </div>
+        
+        <!-- Progress Bar for Long-Running Calls -->
+        ${this.renderCallProgress(call)}
+      </div>
+    `;
+  }
+
+  renderCallProgress(call) {
+    if (call.status !== "active") return "";
+
+    const elapsed = Date.now() / 1000 - call.created;
+    const maxTime = this.getExpectedCallDuration(call.type);
+    const progress = Math.min((elapsed / maxTime) * 100, 100);
+
+    return `
+      <div class="call-progress">
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: ${progress}%"></div>
+        </div>
+        <span class="progress-text">
+          ${Math.floor(elapsed / 60)}m / ${Math.floor(maxTime / 60)}m erwartet
+        </span>
+      </div>
+    `;
+  }
+
+  renderEmptyCallsState() {
+    return `
+      <div class="empty-calls-state">
+        <div class="empty-icon">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <h3>Keine aktiven Einsätze</h3>
+        <p>Momentan sind keine Einsätze verfügbar.</p>
+        <div class="empty-actions">
+          <button class="btn btn-primary" onclick="callSystem.openCreateCallModal()">
+            <i class="fas fa-plus"></i>
+            Neuen Einsatz erstellen
+          </button>
+          <button class="btn btn-secondary" onclick="callSystem.showCallHistory()">
+            <i class="fas fa-history"></i>
+            Einsatzverlauf anzeigen
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  // ================================
+  // 📝 CALL CREATION MODAL
+  // ================================
+
+  openCreateCallModal() {
+    const modal = this.createCallModal();
+    document.body.appendChild(modal);
+    modal.style.display = "block";
+
+    // Initialize form
+    this.initializeCallForm();
+  }
+
+  createCallModal() {
+    const modal = document.createElement("div");
+    modal.className = "modal call-create-modal";
+    modal.id = "call-create-modal";
+
+    modal.innerHTML = `
+      <div class="modal-content large">
+        <div class="modal-header">
+          <h2>
+            <i class="fas fa-plus-circle"></i>
+            Neuen Einsatz erstellen
+          </h2>
+          <button class="modal-close" onclick="callSystem.closeCreateCallModal()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <div class="modal-body">
+          <form id="call-create-form" class="call-form">
+            <!-- Basic Info -->
+            <div class="form-section">
+              <h3>Grundinformationen</h3>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="call-service">Service *</label>
+                  <select id="call-service" required>
+                    <option value="">Service wählen...</option>
+                    <option value="fire">🚒 Feuerwehr</option>
+                    <option value="police">🚓 Polizei</option>
+                    <option value="ems">🚑 Rettungsdienst</option>
+                  </select>
+                </div>
+                
+                <div class="form-group">
+                  <label for="call-priority">Priorität *</label>
+                  <select id="call-priority" required>
+                    <option value="1">🔴 Hoch (P1)</option>
+                    <option value="2" selected>🟡 Mittel (P2)</option>
+                    <option value="3">🔵 Niedrig (P3)</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="call-type">Einsatztyp *</label>
+                  <select id="call-type" required>
+                    <option value="">Typ wählen...</option>
+                    <!-- Will be populated based on service -->
+                  </select>
+                </div>
+                
+                <div class="form-group">
+                  <label for="call-units">Benötigte Einheiten</label>
+                  <input type="number" id="call-units" min="1" max="10" value="1">
+                </div>
+              </div>
+            </div>
+            
+            <!-- Location -->
+            <div class="form-section">
+              <h3>Einsatzort</h3>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="call-location">Adresse/Ort</label>
+                  <input type="text" id="call-location" placeholder="z.B. Mission Row Police Station">
+                </div>
+                
+                <div class="form-group coords-group">
+                  <label>Koordinaten</label>
+                  <div class="coords-input">
+                    <input type="number" id="call-coord-x" placeholder="X" step="0.1">
+                    <input type="number" id="call-coord-y" placeholder="Y" step="0.1">
+                    <input type="number" id="call-coord-z" placeholder="Z" step="0.1">
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="callSystem.useCurrentLocation()">
+                      <i class="fas fa-crosshairs"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Description -->
+            <div class="form-section">
+              <h3>Beschreibung</h3>
+              <div class="form-group">
+                <label for="call-description">Einsatzbeschreibung *</label>
+                <textarea id="call-description" rows="4" required 
+                          placeholder="Detailierte Beschreibung des Einsatzes..."></textarea>
+              </div>
+              
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="call-reporter">Melder</label>
+                  <input type="text" id="call-reporter" placeholder="Name des Melders">
+                </div>
+                
+                <div class="form-group">
+                  <label for="call-contact">Kontakt</label>
+                  <input type="text" id="call-contact" placeholder="Telefonnummer">
+                </div>
+              </div>
+            </div>
+            
+            <!-- Advanced Options -->
+            <div class="form-section collapsible">
+              <h3 onclick="this.parentElement.classList.toggle('expanded')">
+                <i class="fas fa-chevron-right"></i>
+                Erweiterte Optionen
+              </h3>
+              <div class="collapsible-content">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>
+                      <input type="checkbox" id="call-auto-assign">
+                      Automatisch zuweisen
+                    </label>
+                  </div>
+                  
+                  <div class="form-group">
+                    <label>
+                      <input type="checkbox" id="call-high-priority">
+                      Als dringend markieren
+                    </label>
+                  </div>
+                </div>
+                
+                <div class="form-group">
+                  <label for="call-notes">Interne Notizen</label>
+                  <textarea id="call-notes" rows="3" 
+                            placeholder="Interne Notizen (nicht für Einsatzkräfte sichtbar)"></textarea>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="callSystem.closeCreateCallModal()">
+            <i class="fas fa-times"></i>
+            Abbrechen
+          </button>
+          
+          <button type="button" class="btn btn-outline" onclick="callSystem.saveCallDraft()">
+            <i class="fas fa-save"></i>
+            Als Entwurf speichern
+          </button>
+          
+          <button type="submit" form="call-create-form" class="btn btn-primary">
+            <i class="fas fa-plus-circle"></i>
+            Einsatz erstellen
+          </button>
+        </div>
+      </div>
+    `;
+
+    return modal;
+  }
+
+  initializeCallForm() {
+    // Service-dependent call types
+    document.getElementById("call-service").addEventListener("change", (e) => {
+      this.updateCallTypes(e.target.value);
+    });
+
+    // Form submission
+    document
+      .getElementById("call-create-form")
+      .addEventListener("submit", (e) => {
+        e.preventDefault();
+        this.submitNewCall();
+      });
+
+    // Auto-suggest locations
+    this.setupLocationAutocomplete();
+
+    // Load saved draft if exists
+    this.loadCallDraft();
+  }
+
+  updateCallTypes(service) {
+    const typeSelect = document.getElementById("call-type");
+    const callTypes = this.getCallTypesForService(service);
+
+    typeSelect.innerHTML = '<option value="">Typ wählen...</option>';
+
+    callTypes.forEach((type) => {
+      const option = document.createElement("option");
+      option.value = type.id;
+      option.textContent = type.label;
+      typeSelect.appendChild(option);
+    });
+  }
+
+  getCallTypesForService(service) {
+    const types = {
+      fire: [
+        { id: "structure_fire", label: "🔥 Gebäudebrand" },
+        { id: "vehicle_fire", label: "🚗 Fahrzeugbrand" },
+        { id: "wildfire", label: "🌲 Waldbrand" },
+        { id: "rescue", label: "🛠️ Technische Hilfeleistung" },
+        { id: "hazmat", label: "☠️ Gefahrgut" },
+      ],
+      police: [
+        { id: "robbery", label: "💰 Raub" },
+        { id: "traffic_stop", label: "🚦 Verkehrskontrolle" },
+        { id: "domestic_violence", label: "🏠 Häusliche Gewalt" },
+        { id: "burglary", label: "🔓 Einbruch" },
+        { id: "drug_deal", label: "💊 Drogenhandel" },
+        { id: "pursuit", label: "🏃 Verfolgung" },
+      ],
+      ems: [
+        { id: "heart_attack", label: "❤️ Herzinfarkt" },
+        { id: "car_accident", label: "🚗 Verkehrsunfall" },
+        { id: "overdose", label: "💊 Überdosis" },
+        { id: "assault", label: "🤕 Körperverletzung" },
+        { id: "unconscious", label: "😵 Bewusstlos" },
+      ],
+    };
+
+    return types[service] || [];
+  }
+
+  setupLocationAutocomplete() {
+    // Predefined locations for quick selection
+    const locations = [
+      "Mission Row Police Station",
+      "Pillbox Medical Center",
+      "Los Santos Fire Station 1",
+      "Downtown Los Santos",
+      "Vinewood Hills",
+      "Sandy Shores",
+      "Paleto Bay",
+      "Los Santos International Airport",
+    ];
+
+    // Simple autocomplete implementation
+    const locationInput = document.getElementById("call-location");
+    // Implementation would go here...
+  }
+
+  useCurrentLocation() {
+    // In game, this would get player coordinates
+    // For browser testing, use dummy data
+    if (this.mdt.debugMode) {
+      document.getElementById("call-coord-x").value = (
+        Math.random() * 2000 -
+        1000
+      ).toFixed(1);
+      document.getElementById("call-coord-y").value = (
+        Math.random() * 2000 -
+        1000
+      ).toFixed(1);
+      document.getElementById("call-coord-z").value = (
+        Math.random() * 100 +
+        20
+      ).toFixed(1);
+    } else {
+      this.mdt.postNUI("getCurrentLocation", {});
+    }
+  }
+
+  submitNewCall() {
+    const formData = this.collectFormData();
+
+    if (!this.validateCallData(formData)) {
+      return;
+    }
+
+    // Generate call ID
+    formData.id = this.generateCallId(formData.service);
+    formData.created = Math.floor(Date.now() / 1000);
+    formData.status = "pending";
+    formData.assigned = [];
+
+    if (this.mdt.debugMode) {
+      // Browser testing
+      this.mdt.handleCallCreated(formData);
+      this.mdt.showNotification("Einsatz erstellt (Debug)", "success");
+    } else {
+      // Send to server
+      this.mdt.postNUI("createCall", formData);
+    }
+
+    this.closeCreateCallModal();
+    this.clearCallDraft();
+  }
+
+  collectFormData() {
+    return {
+      service: document.getElementById("call-service").value,
+      type: document.getElementById("call-type").value,
+      priority: parseInt(document.getElementById("call-priority").value),
+      requiredUnits: parseInt(document.getElementById("call-units").value),
+      location: document.getElementById("call-location").value,
+      coords: {
+        x: parseFloat(document.getElementById("call-coord-x").value) || 0,
+        y: parseFloat(document.getElementById("call-coord-y").value) || 0,
+        z: parseFloat(document.getElementById("call-coord-z").value) || 0,
+      },
+      description: document.getElementById("call-description").value,
+      reporter: document.getElementById("call-reporter").value,
+      contact: document.getElementById("call-contact").value,
+      autoAssign: document.getElementById("call-auto-assign").checked,
+      highPriority: document.getElementById("call-high-priority").checked,
+      notes: document.getElementById("call-notes").value,
+    };
+  }
+
+  validateCallData(data) {
+    const errors = [];
+
+    if (!data.service) errors.push("Service ist erforderlich");
+    if (!data.type) errors.push("Einsatztyp ist erforderlich");
+    if (!data.description.trim()) errors.push("Beschreibung ist erforderlich");
+    if (data.coords.x === 0 && data.coords.y === 0)
+      errors.push("Koordinaten sind erforderlich");
+
+    if (errors.length > 0) {
+      this.mdt.showNotification("Fehler: " + errors.join(", "), "error");
+      return false;
+    }
+
+    return true;
+  }
+
+  generateCallId(service) {
+    const prefixes = { fire: "FW", police: "POL", ems: "RD" };
+    const prefix = prefixes[service] || "FL";
+    const number = Math.floor(Math.random() * 9999)
+      .toString()
+      .padStart(4, "0");
+    const time = new Date()
+      .toLocaleTimeString("de-DE", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+      .replace(":", "");
+
+    return `${prefix}-${time}-${number}`;
+  }
+
+  saveCallDraft() {
+    const formData = this.collectFormData();
+    localStorage.setItem("fl-call-draft", JSON.stringify(formData));
+    this.mdt.showNotification("Entwurf gespeichert", "success");
+  }
+
+  loadCallDraft() {
+    const draft = localStorage.getItem("fl-call-draft");
+    if (draft) {
+      try {
+        const data = JSON.parse(draft);
+        this.populateFormWithData(data);
+        this.mdt.showNotification("Entwurf geladen", "info");
+      } catch (error) {
+        console.error("Error loading draft:", error);
+      }
+    }
+  }
+
+  clearCallDraft() {
+    localStorage.removeItem("fl-call-draft");
+  }
+
+  closeCreateCallModal() {
+    const modal = document.getElementById("call-create-modal");
+    if (modal) {
+      modal.remove();
+    }
+  }
+
+  // ================================
+  // 🔄 CALL MANAGEMENT ACTIONS
+  // ================================
+
+  assignToCall(callId) {
+    const call = this.mdt.calls[callId];
+    if (!call) return;
+
+    this.mdt.postNUI("assignCall", { callId });
+    this.mdt.showNotification(`Zu Einsatz ${callId} zugewiesen`, "success");
+  }
+
+  unassignFromCall(callId) {
+    this.mdt.postNUI("unassignCall", { callId });
+    this.mdt.showNotification(`Von Einsatz ${callId} entfernt`, "info");
+  }
+
+  setCallWaypoint(callId) {
+    const call = this.mdt.calls[callId];
+    if (!call || !call.coords) return;
+
+    this.mdt.postNUI("setWaypoint", { coords: call.coords });
+    this.mdt.showNotification("GPS-Route gesetzt", "success");
+  }
+
+  requestBackup(callId) {
+    const call = this.mdt.calls[callId];
+    if (!call) return;
+
+    const modal = this.createBackupRequestModal(call);
+    document.body.appendChild(modal);
+    modal.style.display = "block";
+  }
+
+  createBackupRequestModal(call) {
+    const modal = document.createElement("div");
+    modal.className = "modal backup-request-modal";
+    modal.innerHTML = `
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Verstärkung anfordern</h2>
+          <button class="modal-close" onclick="this.closest('.modal').remove()">×</button>
+        </div>
+        <div class="modal-body">
+          <p>Verstärkung für Einsatz: <strong>${call.id}</strong></p>
+          <div class="form-group">
+            <label>Anzahl zusätzlicher Einheiten:</label>
+            <input type="number" id="backup-units" min="1" max="5" value="1">
+          </div>
+          <div class="form-group">
+            <label>Grund:</label>
+            <select id="backup-reason">
+              <option value="additional_support">Zusätzliche Unterstützung</option>
+              <option value="escalation">Eskalation</option>
+              <option value="specialized_unit">Spezialeinheit benötigt</option>
+              <option value="officer_safety">Beamtensicherheit</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Zusätzliche Informationen:</label>
+            <textarea id="backup-notes" rows="3"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Abbrechen</button>
+          <button class="btn btn-primary" onclick="callSystem.submitBackupRequest('${call.id}')">
+            Verstärkung anfordern
+          </button>
+        </div>
+      </div>
+    `;
+    return modal;
+  }
+
+  submitBackupRequest(callId) {
+    const units = document.getElementById("backup-units").value;
+    const reason = document.getElementById("backup-reason").value;
+    const notes = document.getElementById("backup-notes").value;
+
+    this.mdt.postNUI("requestBackup", {
+      callId,
+      additionalUnits: parseInt(units),
+      reason,
+      notes,
+    });
+
+    document.querySelector(".backup-request-modal").remove();
+    this.mdt.showNotification("Verstärkung angefordert", "success");
+  }
+
+  updateCallStatus(callId) {
+    const call = this.mdt.calls[callId];
+    if (!call) return;
+
+    const newStatus = this.promptForStatusUpdate(call.status);
+    if (newStatus && newStatus !== call.status) {
+      this.mdt.postNUI("updateCallStatus", {
+        callId,
+        status: newStatus,
+        timestamp: Math.floor(Date.now() / 1000),
+      });
+    }
+  }
+
+  promptForStatusUpdate(currentStatus) {
+    const statusOptions = {
+      pending: "Ausstehend",
+      assigned: "Zugewiesen",
+      en_route: "Anfahrt",
+      on_scene: "Vor Ort",
+      active: "Aktiv",
+      completed: "Abgeschlossen",
+    };
+
+    const options = Object.entries(statusOptions)
+      .filter(([key]) => key !== currentStatus)
+      .map(([key, label]) => `${key}: ${label}`)
+      .join("\n");
+
+    const selected = prompt(`Neuer Status wählen:\n${options}\n\nEingabe:`);
+    return selected && statusOptions[selected] ? selected : null;
+  }
+
+  completeCall(callId) {
+    const call = this.mdt.calls[callId];
+    if (!call) return;
+
+    const notes = prompt("Abschlussbericht (optional):");
+
+    this.mdt.postNUI("completeCall", {
+      callId,
+      notes: notes || "",
+      completedBy: this.mdt.playerData.source,
+      completedAt: Math.floor(Date.now() / 1000),
+    });
+
+    this.mdt.showNotification(`Einsatz ${callId} abgeschlossen`, "success");
+  }
+
+  // ================================
+  // 🎛️ FILTERING & SORTING
+  // ================================
+
+  filterAndSortCalls(calls) {
+    let filtered = [...calls];
+
+    // Apply filters
+    filtered = filtered.filter((call) => {
+      if (
+        this.callFilters.status !== "all" &&
+        call.status !== this.callFilters.status
+      ) {
+        return false;
+      }
+      if (
+        this.callFilters.priority !== "all" &&
+        call.priority.toString() !== this.callFilters.priority
+      ) {
+        return false;
+      }
+      if (
+        this.callFilters.service !== "all" &&
+        call.service !== this.callFilters.service
+      ) {
+        return false;
+      }
+      return true;
+    });
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let comparison = 0;
+
+      switch (this.sortBy) {
+        case "priority":
+          comparison = a.priority - b.priority;
+          break;
+        case "time":
+          comparison = (b.created || 0) - (a.created || 0);
+          break;
+        case "distance":
+          const distA = this.calculateDistance(a.coords);
+          const distB = this.calculateDistance(b.coords);
+          comparison = distA - distB;
+          break;
+        case "status":
+          comparison = (a.status || "").localeCompare(b.status || "");
+          break;
+      }
+
+      return this.sortOrder === "desc" ? -comparison : comparison;
+    });
+
+    return filtered;
+  }
+
+  searchCalls(query) {
+    if (!query.trim()) {
+      this.renderEnhancedCalls();
+      return;
+    }
+
+    const searchTerms = query.toLowerCase().split(" ");
+    const callCards = document.querySelectorAll(".call-card");
+
+    callCards.forEach((card) => {
+      const callId = card.dataset.callId;
+      const call = this.mdt.calls[callId];
+
+      if (!call) return;
+
+      const searchText = [
+        call.id,
+        call.type,
+        call.description,
+        call.location,
+        call.reporter,
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      const matches = searchTerms.every((term) => searchText.includes(term));
+      card.style.display = matches ? "block" : "none";
+    });
+  }
+
+  setSortOrder(sortBy) {
+    if (this.sortBy === sortBy) {
+      this.sortOrder = this.sortOrder === "asc" ? "desc" : "asc";
+    } else {
+      this.sortBy = sortBy;
+      this.sortOrder = "asc";
+    }
+
+    this.renderEnhancedCalls();
+  }
+
+  // ================================
+  // 🔢 UTILITY CALCULATIONS
+  // ================================
+
+  calculateTimeElapsed(timestamp) {
+    if (!timestamp) return "Unbekannt";
+
+    const now = Date.now() / 1000;
+    const elapsed = now - timestamp;
+
+    if (elapsed < 60) return "Gerade eben";
+    if (elapsed < 3600) return `${Math.floor(elapsed / 60)}m`;
+    if (elapsed < 86400) return `${Math.floor(elapsed / 3600)}h`;
+    return `${Math.floor(elapsed / 86400)}d`;
+  }
+
+  calculateDistance(coords) {
+    if (!coords || !this.mdt.playerData.coords) return null;
+
+    // Simplified distance calculation
+    const dx = coords.x - (this.mdt.playerData.coords.x || 0);
+    const dy = coords.y - (this.mdt.playerData.coords.y || 0);
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    if (distance < 1000) {
+      return `${Math.round(distance)}m`;
+    } else {
+      return `${(distance / 1000).toFixed(1)}km`;
+    }
+  }
+
+  calculateUrgencyLevel(call) {
+    const now = Date.now() / 1000;
+    const age = now - (call.created || now);
+    const maxTime = this.getExpectedCallDuration(call.type);
+
+    if (call.priority === 1 && age > 300) return "urgent"; // P1 over 5 minutes
+    if (call.priority === 2 && age > 900) return "urgent"; // P2 over 15 minutes
+    if (age > maxTime) return "overdue";
+
+    return "normal";
+  }
+
+  getExpectedCallDuration(type) {
+    const durations = {
+      heart_attack: 1200, // 20 minutes
+      structure_fire: 3600, // 1 hour
+      robbery: 1800, // 30 minutes
+      traffic_stop: 600, // 10 minutes
+      car_accident: 2400, // 40 minutes
+    };
+
+    return durations[type] || 1800; // Default 30 minutes
+  }
+
+  updateCallTimers() {
+    const timeElements = document.querySelectorAll(
+      ".time-elapsed[data-created]"
+    );
+    timeElements.forEach((element) => {
+      const created = parseInt(element.dataset.created);
+      element.textContent = this.calculateTimeElapsed(created);
+    });
+  }
+
+  updateCallBadges(calls) {
+    const total = calls.length;
+    const priority1 = calls.filter((c) => c.priority === 1).length;
+    const assigned = calls.filter(
+      (c) => c.assigned && c.assigned.includes(this.mdt.playerData.source)
+    ).length;
+
+    this.mdt.setElementContent("calls-badge", total.toString());
+
+    // Update navigation badges if they exist
+    const nav = document.querySelector('[data-tab="calls"]');
+    if (nav) {
+      nav.classList.toggle("has-urgent", priority1 > 0);
+      nav.classList.toggle("has-assigned", assigned > 0);
+    }
+  }
+
+  formatTime(timestamp) {
+    return new Date(timestamp * 1000).toLocaleTimeString("de-DE", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  // ================================
+  // 📊 CALL HISTORY & ANALYTICS
+  // ================================
+
+  showCallHistory() {
+    const modal = this.createCallHistoryModal();
+    document.body.appendChild(modal);
+    modal.style.display = "block";
+  }
+
+  createCallHistoryModal() {
+    const modal = document.createElement("div");
+    modal.className = "modal call-history-modal";
+    modal.innerHTML = `
+      <div class="modal-content large">
+        <div class="modal-header">
+          <h2>Einsatzverlauf</h2>
+          <button class="modal-close" onclick="this.closest('.modal').remove()">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="history-filters">
+            <select id="history-period">
+              <option value="today">Heute</option>
+              <option value="week">Diese Woche</option>
+              <option value="month">Dieser Monat</option>
+            </select>
+            <select id="history-service">
+              <option value="all">Alle Services</option>
+              <option value="fire">Feuerwehr</option>
+              <option value="police">Polizei</option>
+              <option value="ems">Rettungsdienst</option>
+            </select>
+          </div>
+          <div class="history-stats">
+            <div class="stat-card">
+              <h3 id="total-calls-stat">0</h3>
+              <p>Gesamt Einsätze</p>
+            </div>
+            <div class="stat-card">
+              <h3 id="completed-calls-stat">0</h3>
+              <p>Abgeschlossen</p>
+            </div>
+            <div class="stat-card">
+              <h3 id="avg-time-stat">0m</h3>
+              <p>Ø Bearbeitungszeit</p>
+            </div>
+          </div>
+          <div class="history-list" id="history-list">
+            <!-- Call history items will be loaded here -->
+          </div>
+        </div>
+      </div>
+    `;
+    return modal;
+  }
+}
+
+// Initialize Call System when MDT is ready
+window.callSystem = null;
+
+// Extend the original MDT class
+if (window.flMDT) {
+  window.callSystem = new CallSystem(window.flMDT);
+
+  // Override the renderCalls method to use enhanced version
+  window.flMDT.renderCalls = function () {
+    if (window.callSystem) {
+      window.callSystem.renderEnhancedCalls();
+    }
+  };
+
+  // Add call system methods to MDT
+  window.flMDT.openCreateCallModal = () =>
+    window.callSystem.openCreateCallModal();
+}
+
+console.log("🚨 Enhanced Call System loaded successfully!");
