@@ -20,6 +20,7 @@ class FlashingLightsMDT {
     this.currentTab = "calls";
     this.updateInterval = null;
     this.isVisible = false;
+    this.debugMode = true;
 
     this.init();
   }
@@ -32,12 +33,12 @@ class FlashingLightsMDT {
     this.setupEventListeners();
     this.setupKeyboardShortcuts();
     this.loadSettings();
-    // this.startClock(); // Nur starten wenn MDT geöffnet ist
 
-    // UI standardmäßig versteckt halten
-    document.body.style.display = "none";
+    if (!this.debugMode) {
+      document.body.style.display = "none";
+    }
 
-    console.log("🚨 FL Emergency MDT initialized (hidden)");
+    console.log("🚨 MDT initialized");
   }
 
   setupEventListeners() {
@@ -883,16 +884,40 @@ class FlashingLightsMDT {
   // 📡 NUI COMMUNICATION
   // ================================
 
+  //  postNUI(type, data) {
+  //   fetch(`https://${GetParentResourceName()}/${type}`, {
+  //     method: "POST",
+  //     headers: {
+  //       "Content-Type": "application/json",
+  //     },
+  //     body: JSON.stringify(data),
+  //   }).catch((error) => {
+  //     console.error("NUI Error:", error);
+  //   });
+  //  }
   postNUI(type, data) {
-    fetch(`https://${GetParentResourceName()}/${type}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    }).catch((error) => {
-      console.error("NUI Error:", error);
-    });
+    // Prüfen, ob wir uns in einer Spielumgebung befinden
+    if (
+      typeof GetParentResourceName !== "undefined" &&
+      GetParentResourceName() !== "browser"
+    ) {
+      // Code für das Spiel (FiveM/RageMP)
+      fetch(`https://${GetParentResourceName()}/${type}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      }).catch((error) => {
+        console.error("NUI Error:", error);
+      });
+    } else {
+      // Code für den Browser-Test
+      console.log(`[BROWSER-TEST] PostNUI aufgerufen:`);
+      console.log(`Typ: ${type}`);
+      console.log(`Daten:`, data);
+      this.showNotification(`Aktion '${type}' im Browser simuliert`, "info");
+    }
   }
 
   // ================================
@@ -930,14 +955,62 @@ class FlashingLightsMDT {
   }
 }
 
-// ================================
-// 🚀 INITIALIZE APPLICATION
-// ================================
-
 const flMDT = new FlashingLightsMDT();
 window.flMDT = flMDT;
 
 // Helper function for resource name
 function GetParentResourceName() {
-  return "fl_emergency";
+  // Für den Browser-Test geben wir einen Dummy-Namen zurück
+  if (typeof GetParentResourceName_original === "undefined") {
+    return "fl_emergency";
+  }
+  return GetParentResourceName_original();
+}
+
+function testOpenMDT() {
+  window.postMessage(
+    {
+      type: "openMDT",
+      service: "police",
+      serviceData: { label: "Polizei", icon: "fas fa-shield-alt" },
+      playerData: {
+        name: "Max Mustermann",
+        rank: "Inspektor",
+        rankLevel: 3,
+        station: "LSZ Innenstadt",
+        onDuty: true,
+        source: 1,
+        activeOfficers: 5,
+      },
+      calls: {
+        101: {
+          id: 101,
+          type: "Einbruch",
+          priority: 1,
+          status: "pending",
+          description: "Einbruch in einem Juweliergeschäft",
+          created: Math.floor(Date.now() / 1000) - 90,
+          assigned: [],
+          requiredUnits: 2,
+          coords: { x: -634.0, y: -239.0, z: 38.0 },
+        },
+        102: {
+          id: 102,
+          type: "Verkehrsunfall",
+          priority: 2,
+          status: "assigned",
+          description: "Unfall mit zwei Fahrzeugen",
+          created: Math.floor(Date.now() / 1000) - 300,
+          assigned: [1],
+          requiredUnits: 1,
+          coords: { x: 215.0, y: -800.0, z: 30.0 },
+        },
+      },
+      vehicles: {
+        v1: { label: "Streifenwagen", plate: "LS-123", status: "active" },
+        v2: { label: "Transporter", plate: "LS-456", status: "maintenance" },
+      },
+    },
+    "*"
+  );
 }
