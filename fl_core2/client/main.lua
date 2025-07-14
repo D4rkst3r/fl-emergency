@@ -223,7 +223,7 @@ function FL.OpenDutyMenu(service, stationId)
             {
                 title = FL.Player.onDuty and 'Dienst beenden' or 'Dienst beginnen',
                 description = FL.Player.onDuty and 'Dienstzeit beenden und Equipment abgeben' or
-                'Dienstzeit beginnen und Equipment erhalten',
+                    'Dienstzeit beginnen und Equipment erhalten',
                 icon = FL.Player.onDuty and 'fa-solid fa-clock-o' or 'fa-solid fa-clock',
                 iconColor = FL.Player.onDuty and '#e74c3c' or '#2ecc71',
                 onSelect = function()
@@ -706,15 +706,23 @@ end)
 
 function FL.OpenCallCenter(service)
     if FL.State.uiOpen then return end
-
     FL.State.uiOpen = true
     SetNuiFocus(true, true)
+
+    -- FIX: serviceData definieren
+    local serviceData = Config.Services[service] or {
+        label = 'Emergency Service',
+        icon = 'fa-solid fa-shield',
+        color = '#3498db'
+    }
 
     SendNUIMessage({
         type = 'openMDT',
         service = service,
+        serviceData = serviceData, -- Das war das Problem!
         calls = FL.State.activeCalls,
-        playerData = FL.Player
+        playerData = FL.Player,
+        config = {}
     })
 end
 
