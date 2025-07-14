@@ -568,43 +568,50 @@ end)
 -- 📝 ADMIN COMMANDS - FIXED
 -- ================================
 
--- Random Call Command
-QBCore.Commands.Add('randomcall', 'Generate a random emergency call', {
-    { name = 'service', help = 'Service (fire/police/ems)' }
-}, true, function(source, args)
-    -- Prüfe Admin
-    if not QBCore.Functions.HasPermission(source, 'admin') then
-        TriggerClientEvent('ox_lib:notify', source, {
-            type = 'error',
-            description = 'Keine Berechtigung'
-        })
-        return
-    end
+-- Random Call Command - FIXED
+if QBCore and QBCore.Commands then
+    QBCore.Commands.Add('randomcall', 'Generate a random emergency call', {
+        { name = 'service', help = 'Service (fire/police/ems)' }
+    }, true, function(source, args)
+        -- Prüfe Admin
+        local Player = QBCore.Functions.GetPlayer(source)
+        if not Player then return end
 
-    local service = args[1]
+        if not QBCore.Functions.HasPermission(source, 'admin') then
+            TriggerClientEvent('ox_lib:notify', source, {
+                type = 'error',
+                description = 'Keine Berechtigung'
+            })
+            return
+        end
 
-    if not Config.Services[service] then
-        TriggerClientEvent('ox_lib:notify', source, {
-            type = 'error',
-            description = 'Invalid service'
-        })
-        return
-    end
+        local service = args[1]
 
-    local callId = FL.Calls.GenerateRandomCall(service)
+        if not Config.Services[service] then
+            TriggerClientEvent('ox_lib:notify', source, {
+                type = 'error',
+                description = 'Invalid service'
+            })
+            return
+        end
 
-    if callId then
-        TriggerClientEvent('ox_lib:notify', source, {
-            type = 'success',
-            description = 'Random call created: ' .. callId
-        })
-    else
-        TriggerClientEvent('ox_lib:notify', source, {
-            type = 'error',
-            description = 'Failed to create random call'
-        })
-    end
-end, 'admin')
+        local callId, call = FL.Calls.GenerateRandomCall(service) -- FIX: Beide Return-Werte
+
+        if callId then
+            TriggerClientEvent('ox_lib:notify', source, {
+                type = 'success',
+                description = 'Random call created: ' .. callId
+            })
+        else
+            TriggerClientEvent('ox_lib:notify', source, {
+                type = 'error',
+                description = 'Failed to create random call'
+            })
+        end
+    end, 'admin')
+else
+    print('^3[FL Warning]^7 QBCore.Commands not available for randomcall command')
+end
 
 -- ================================
 -- 📤 EXPORTS

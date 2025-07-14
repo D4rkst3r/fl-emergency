@@ -1,8 +1,12 @@
 -- ================================
--- 🚨 FL EMERGENCY SERVICES - CLIENT MAIN
+-- 🚨 FL EMERGENCY SERVICES - CLIENT MAIN (FIXED)
 -- ================================
 
+-- Wait for QBCore to be ready
 local QBCore = exports['qb-core']:GetCoreObject()
+
+-- Wait for ox_lib to be ready
+while not lib do Wait(100) end
 
 -- ================================
 -- 📊 CLIENT STATE MANAGEMENT
@@ -57,8 +61,10 @@ CreateThread(function()
 
         -- Setup nur wenn Emergency Service
         if FL.Player.service then
-            -- Initialisiere Target-System
-            FL.Target.Initialize()
+            -- Warte auf Target-System
+            while not FL.Target or not FL.Target.Available do
+                Wait(100)
+            end
 
             -- Setup Stations
             FL.SetupStations()
@@ -118,7 +124,7 @@ end
 function FL.SetupStation(service, stationId, stationData)
     -- Duty Point Setup
     if stationData.dutyPoint then
-        exports.ox_target:addBoxZone({
+        FL.AddBoxZone({
             coords = stationData.dutyPoint.coords,
             size = stationData.dutyPoint.size,
             rotation = stationData.dutyPoint.rotation or 0,
@@ -131,7 +137,7 @@ function FL.SetupStation(service, stationId, stationData)
                     onSelect = function()
                         FL.OpenDutyMenu(service, stationId)
                     end,
-                    distance = Config.Interaction.targetDistance
+                    distance = Config.Interaction.targetDistance or 3.0
                 }
             }
         })
@@ -139,7 +145,7 @@ function FL.SetupStation(service, stationId, stationData)
 
     -- Equipment Point Setup
     if stationData.equipment then
-        exports.ox_target:addBoxZone({
+        FL.AddBoxZone({
             coords = stationData.equipment.coords,
             size = stationData.equipment.size,
             rotation = 0,
@@ -155,7 +161,7 @@ function FL.SetupStation(service, stationId, stationData)
                     onSelect = function()
                         FL.OpenEquipmentMenu(service, stationId)
                     end,
-                    distance = Config.Interaction.targetDistance
+                    distance = Config.Interaction.targetDistance or 3.0
                 }
             }
         })
@@ -164,7 +170,7 @@ function FL.SetupStation(service, stationId, stationData)
     -- Vehicle Spawns Setup
     if stationData.vehicles then
         for i, vehicleSpawn in pairs(stationData.vehicles) do
-            exports.ox_target:addBoxZone({
+            FL.AddBoxZone({
                 coords = vehicleSpawn.coords,
                 size = vector3(3.0, 6.0, 2.0),
                 rotation = vehicleSpawn.heading or 0,
@@ -180,7 +186,7 @@ function FL.SetupStation(service, stationId, stationData)
                         onSelect = function()
                             FL.OpenVehicleMenu(service, stationId, i, vehicleSpawn)
                         end,
-                        distance = Config.Interaction.targetDistance
+                        distance = Config.Interaction.targetDistance or 3.0
                     }
                 }
             })
@@ -189,7 +195,7 @@ function FL.SetupStation(service, stationId, stationData)
 
     -- Wardrobe Setup
     if stationData.wardrobe then
-        exports.ox_target:addBoxZone({
+        FL.AddBoxZone({
             coords = stationData.wardrobe.coords,
             size = stationData.wardrobe.size,
             rotation = 0,
@@ -202,7 +208,7 @@ function FL.SetupStation(service, stationId, stationData)
                     onSelect = function()
                         FL.OpenWardrobeMenu(service, stationId)
                     end,
-                    distance = Config.Interaction.targetDistance
+                    distance = Config.Interaction.targetDistance or 3.0
                 }
             }
         })
@@ -271,25 +277,37 @@ function FL.OpenVehicleMenu(service, stationId, spawnIndex, spawnData)
     local vehicles = Config.Vehicles[service]
     local options = {}
 
-    for category, categoryVehicles in pairs(vehicles) do
-        for vehicleKey, vehicleData in pairs(categoryVehicles) do
-            table.insert(options, {
-                title = vehicleData.label,
-                description = 'Kategorie: ' .. category .. ' | Plätze: ' .. vehicleData.seats,
-                icon = Config.VehicleUI.categories[service][category].icon,
-                iconColor = Config.VehicleUI.categories[service][category].color,
-                disabled = FL.GetPlayerRank() < vehicleData.requiredGrade,
-                metadata = {
-                    { label = 'Rang benötigt', value = vehicleData.requiredGrade },
-                    { label = 'Sitze',         value = vehicleData.seats },
-                    { label = 'Kategorie',     value = category }
-                },
-                onSelect = function()
-                    FL.SpawnVehicle(vehicleKey, vehicleData,
-                        spawnData or
-                        { coords = GetEntityCoords(PlayerPedId()), heading = GetEntityHeading(PlayerPedId()) })
-                end
-            })
+    if not vehicles then
+        table.insert(options, {
+            title = 'Keine Fahrzeuge verfügbar',
+            disabled = true
+        })
+    else
+        for category, categoryVehicles in pairs(vehicles) do
+            for vehicleKey, vehicleData in pairs(categoryVehicles) do
+                local playerRank = FL.GetPlayerRank()
+                local canSpawn = playerRank >= (vehicleData.requiredGrade or 0)
+
+                table.insert(options, {
+                    title = vehicleData.label,
+                    description = canSpawn and ('Kategorie: ' .. category .. ' | Plätze: ' .. (vehicleData.seats or 4)) or
+                    ('Rang ' .. (vehicleData.requiredGrade or 0) .. ' benötigt'),
+                    icon = 'fa-solid fa-car',
+                    iconColor = canSpawn and serviceData.color or '#95a5a6',
+                    disabled = not canSpawn,
+                    metadata = {
+                        { label = 'Rang benötigt', value = vehicleData.requiredGrade or 0 },
+                        { label = 'Sitze',         value = vehicleData.seats or 4 },
+                        { label = 'Kategorie',     value = category }
+                    },
+                    onSelect = function()
+                        FL.RequestVehicleSpawn(vehicleKey, vehicleData, spawnData or {
+                            coords = GetEntityCoords(PlayerPedId()),
+                            heading = GetEntityHeading(PlayerPedId())
+                        })
+                    end
+                })
+            end
         end
     end
 
@@ -308,7 +326,7 @@ function FL.OpenEquipmentMenu(service, stationId)
     local options = {}
 
     -- Items
-    if equipment.items then
+    if equipment and equipment.items then
         for _, item in pairs(equipment.items) do
             table.insert(options, {
                 title = item,
@@ -323,7 +341,7 @@ function FL.OpenEquipmentMenu(service, stationId)
     end
 
     -- Waffen (nur Polizei)
-    if equipment.weapons and service == 'police' then
+    if equipment and equipment.weapons and service == 'police' then
         table.insert(options, {
             title = 'Waffenkammer',
             description = 'Dienstwaffen anfordern',
@@ -332,6 +350,13 @@ function FL.OpenEquipmentMenu(service, stationId)
             onSelect = function()
                 FL.OpenArmoryMenu(service)
             end
+        })
+    end
+
+    if #options == 0 then
+        table.insert(options, {
+            title = 'Keine Ausrüstung verfügbar',
+            disabled = true
         })
     end
 
@@ -350,7 +375,7 @@ function FL.OpenWardrobeMenu(service, stationId)
     local gender = GetEntityModel(PlayerPedId()) == GetHashKey('mp_f_freemode_01') and 'female' or 'male'
     local options = {}
 
-    if uniforms[gender] then
+    if uniforms and uniforms[gender] then
         for uniformId, uniformData in pairs(uniforms[gender]) do
             table.insert(options, {
                 title = 'Uniform ' .. (uniformId + 1),
@@ -388,7 +413,7 @@ end
 -- 🚗 VEHICLE MANAGEMENT
 -- ================================
 
-function FL.SpawnVehicle(vehicleKey, vehicleData, spawnData)
+function FL.RequestVehicleSpawn(vehicleKey, vehicleData, spawnData)
     local coords = spawnData.coords
     local heading = spawnData.heading or 0.0
 
@@ -401,72 +426,8 @@ function FL.SpawnVehicle(vehicleKey, vehicleData, spawnData)
         return
     end
 
-    -- Lade Fahrzeug-Model
-    local model = GetHashKey(vehicleData.model)
-
-    lib.requestModel(model, 10000)
-
-    if not HasModelLoaded(model) then
-        lib.notify({
-            type = 'error',
-            description = 'Fahrzeug konnte nicht geladen werden'
-        })
-        return
-    end
-
-    -- Spawne Fahrzeug
-    local vehicle = CreateVehicle(model, coords.x, coords.y, coords.z, heading, true, false)
-
-    SetEntityAsMissionEntity(vehicle, true, true)
-    SetVehicleNumberPlateText(vehicle, FL.GeneratePlateName(FL.Player.service))
-
-    -- Setze Fahrzeug-Properties
-    FL.ApplyVehicleProperties(vehicle, vehicleData)
-
-    -- Gib Schlüssel
-    if Config.VehicleSettings.requireKeys then
-        TriggerEvent('vehiclekeys:client:SetOwner', QBCore.Functions.GetPlate(vehicle))
-    end
-
-    -- Speichere Fahrzeug
-    FL.Player.currentVehicle = vehicle
-
-    -- Benachrichtigung
-    lib.notify({
-        type = 'success',
-        description = vehicleData.label .. ' wurde gespawnt'
-    })
-
-    SetModelAsNoLongerNeeded(model)
-end
-
-function FL.ApplyVehicleProperties(vehicle, vehicleData)
-    -- Livery
-    if vehicleData.livery then
-        SetVehicleLivery(vehicle, vehicleData.livery)
-    end
-
-    -- Farben
-    if vehicleData.colors then
-        SetVehicleColors(vehicle, vehicleData.colors.primary, vehicleData.colors.secondary)
-    end
-
-    -- Extras
-    if vehicleData.features and vehicleData.features.extras then
-        for _, extra in pairs(vehicleData.features.extras) do
-            SetVehicleExtra(vehicle, extra, false) -- false = aktiviert
-        end
-    end
-
-    -- Siren aktivieren
-    if vehicleData.features and vehicleData.features.siren then
-        SetVehicleHasMutedSirens(vehicle, false)
-    end
-
-    -- Fuel (wenn System vorhanden)
-    if Config.VehicleSettings.fuel.enabled then
-        exports['LegacyFuel']:SetFuel(vehicle, 100.0)
-    end
+    -- Trigger Server Event für Spawn
+    TriggerServerEvent('fl:vehicle:requestSpawn', vehicleKey, vehicleData, spawnData)
 end
 
 function FL.IsSpawnPointOccupied(coords, radius)
@@ -568,7 +529,7 @@ function FL.StartThreads()
     -- Station Check Thread
     FL.Threads.stationCheck = CreateThread(function()
         while true do
-            Wait(Config.Threads.stationCheck)
+            Wait(Config.Threads and Config.Threads.stationCheck or 5000)
 
             if FL.Player.service then
                 local near, stationId = FL.IsNearStation(FL.Player.service)
@@ -594,11 +555,11 @@ RegisterNetEvent('fl:duty:started', function(data)
     FL.Player.currentStation = data.station
 
     -- Uniform anziehen
-    if Config.Duty.uniformAutoEquip and data.service == FL.Player.service then
+    if Config.Duty and Config.Duty.uniformAutoEquip and data.service == FL.Player.service then
         local serviceData = Config.Services[data.service]
         local gender = GetEntityModel(PlayerPedId()) == GetHashKey('mp_f_freemode_01') and 'female' or 'male'
 
-        if serviceData.uniforms[gender] and serviceData.uniforms[gender][0] then
+        if serviceData.uniforms and serviceData.uniforms[gender] and serviceData.uniforms[gender][0] then
             FL.ApplyUniform(serviceData.uniforms[gender][0])
         end
     end
@@ -632,7 +593,7 @@ RegisterNetEvent('fl:callCreated', function(call)
         })
 
         -- Spiele Sound
-        if Config.Notifications.playSound then
+        if Config.Notifications and Config.Notifications.playSound then
             PlaySoundFrontend(-1, "TIMER_STOP", "HUD_MINI_GAME_SOUNDSET", 1)
         end
     end
@@ -709,7 +670,7 @@ function FL.OpenCallCenter(service)
     FL.State.uiOpen = true
     SetNuiFocus(true, true)
 
-    -- FIX: serviceData definieren
+    -- Service Data definieren
     local serviceData = Config.Services[service] or {
         label = 'Emergency Service',
         icon = 'fa-solid fa-shield',
@@ -719,7 +680,7 @@ function FL.OpenCallCenter(service)
     SendNUIMessage({
         type = 'openMDT',
         service = service,
-        serviceData = serviceData, -- Das war das Problem!
+        serviceData = serviceData,
         calls = FL.State.activeCalls,
         playerData = FL.Player,
         config = {}

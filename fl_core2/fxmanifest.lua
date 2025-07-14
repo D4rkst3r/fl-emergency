@@ -22,12 +22,13 @@ shared_scripts {
     'config/services.lua',
     'config/stations.lua',
     'config/vehicles.lua',
-    'shared/utils.lua' -- Falls vorhanden
+    'shared/utils.lua'
 }
 
 -- Server Scripts - REIHENFOLGE WICHTIG!
 server_scripts {
     '@oxmysql/lib/MySQL.lua',
+    '@qb-core/import.lua',
     'server/main.lua',     -- ZUERST - initialisiert FL global
     'server/database.lua', -- ZWEITES - braucht FL
     'server/duty.lua',     -- DRITTES - braucht FL + Database
@@ -36,6 +37,8 @@ server_scripts {
 
 -- Client Scripts - REIHENFOLGE WICHTIG!
 client_scripts {
+    '@qb-core/import.lua',
+    '@ox_lib/init.lua',
     'client/main.lua',          -- ZUERST - initialisiert FL global
     'client/compatibility.lua', -- ZWEITES - Target-System detection
     'client/ui.lua',            -- DRITTES - UI Functions
@@ -49,8 +52,7 @@ files {
     'web/index.html',
     'web/debug.html',
     'web/app.js',
-    'web/style.css',
-    'web/assets/**/*'
+    'web/style.css'
 }
 
 -- Exports (für andere Resources)
@@ -67,13 +69,4 @@ server_exports {
     'AssignPlayerToCall',
     'CreateCall',
     'GetActiveCalls'
-}
-
--- QBCore Integration
-server_scripts {
-    '@qb-core/import.lua' -- Optional, falls verfügbar
-}
-
-client_scripts {
-    '@qb-core/import.lua' -- Optional, falls verfügbar
 }

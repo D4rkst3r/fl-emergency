@@ -474,9 +474,16 @@ end
 -- ================================
 
 function FL.RegisterCommands()
-    -- Debug Command
+    if not QBCore or not QBCore.Commands then
+        print('^1[FL Error]^7 QBCore.Commands not available')
+        return
+    end
+
+    -- Debug Command - FIXED
     QBCore.Commands.Add('fldebug', 'FL Emergency Debug Information', {}, false, function(source, args)
-        -- Prüfe Admin
+        local Player = QBCore.Functions.GetPlayer(source)
+        if not Player then return end
+
         if not QBCore.Functions.HasPermission(source, 'admin') then
             TriggerClientEvent('ox_lib:notify', source, {
                 type = 'error',
@@ -487,9 +494,9 @@ function FL.RegisterCommands()
 
         local info = {
             system = FL.System,
-            activePlayers = #FL.State.activePlayers,
-            activeCalls = #FL.State.activeCalls,
-            activeVehicles = #FL.State.activeVehicles,
+            activePlayers = FL.Utils and FL.Utils.Table and FL.Utils.Table.Size(FL.State.activePlayers) or 0,
+            activeCalls = FL.Utils and FL.Utils.Table and FL.Utils.Table.Size(FL.State.activeCalls) or 0,
+            activeVehicles = FL.Utils and FL.Utils.Table and FL.Utils.Table.Size(FL.State.activeVehicles) or 0,
             stats = FL.Stats
         }
 
@@ -542,7 +549,9 @@ function FL.RegisterCommands()
         { name = 'service', help = 'Service (fire/police/ems)' },
         { name = 'type',    help = 'Call type (optional)' }
     }, true, function(source, args)
-        -- Prüfe Admin
+        local Player = QBCore.Functions.GetPlayer(source)
+        if not Player then return end
+
         if not QBCore.Functions.HasPermission(source, 'admin') then
             TriggerClientEvent('ox_lib:notify', source, {
                 type = 'error',
