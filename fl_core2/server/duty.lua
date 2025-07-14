@@ -2,6 +2,8 @@
 -- 🚨 FL EMERGENCY - DUTY SYSTEM SERVER
 -- ================================
 
+local QBCore = exports['qb-core']:GetCoreObject() -- FIX: QBCore initialisieren
+
 FL.Duty = {}
 
 -- ================================
@@ -68,6 +70,11 @@ end
 
 function FL.Duty.StartDuty(source, service, stationId)
     local Player = QBCore.Functions.GetPlayer(source)
+    if not Player then
+        print("^1[FL Error]^7 Player not found for source: " .. tostring(source))
+        return false
+    end
+
     local citizenid = Player.PlayerData.citizenid
 
     -- Validierung
@@ -166,7 +173,10 @@ end
 
 function FL.Duty.EndDuty(source, service, stationId, forced)
     local Player = QBCore.Functions.GetPlayer(source)
-    if not Player then return false end
+    if not Player then
+        print("^1[FL Error]^7 Player not found for duty end, source: " .. tostring(source))
+        return false
+    end
 
     local citizenid = Player.PlayerData.citizenid
     local dutyData = FL.State.activePlayers[source]
@@ -452,7 +462,7 @@ end
 -- ================================
 
 -- Automatisches Dienst-Ende bei Disconnect
-RegisterNetEvent('playerDropped', function(reason)
+AddEventHandler('playerDropped', function(reason) -- FIX: RegisterNetEvent zu AddEventHandler
     local source = source
     local dutyData = FL.State.activePlayers[source]
 
@@ -474,24 +484,29 @@ CreateThread(function()
         Wait(300000) -- Check every 5 minutes
 
         for source, dutyData in pairs(FL.State.activePlayers) do
-            local dutyDuration = os.time() - dutyData.startTime
+            if GetPlayerName(source) then -- Prüfe ob Spieler noch online ist
+                local dutyDuration = os.time() - dutyData.startTime
 
-            -- Max Duty Time Check
-            if Config.Duty.maxDutyTime and dutyDuration > Config.Duty.maxDutyTime then
-                FL.Log('warn', 'Force duty end - max time exceeded', {
-                    source = source,
-                    citizenid = dutyData.citizenid,
-                    service = dutyData.service,
-                    duration = dutyDuration
-                })
+                -- Max Duty Time Check
+                if Config.Duty.maxDutyTime and dutyDuration > Config.Duty.maxDutyTime then
+                    FL.Log('warn', 'Force duty end - max time exceeded', {
+                        source = source,
+                        citizenid = dutyData.citizenid,
+                        service = dutyData.service,
+                        duration = dutyDuration
+                    })
 
-                TriggerClientEvent('ox_lib:notify', source, {
-                    type = 'error',
-                    title = 'Dienst beendet',
-                    description = 'Maximale Dienstzeit erreicht'
-                })
+                    TriggerClientEvent('ox_lib:notify', source, {
+                        type = 'error',
+                        title = 'Dienst beendet',
+                        description = 'Maximale Dienstzeit erreicht'
+                    })
 
-                FL.Duty.EndDuty(source, dutyData.service, 'timeout', true)
+                    FL.Duty.EndDuty(source, dutyData.service, 'timeout', true)
+                end
+            else
+                -- Spieler ist offline, entferne aus Liste
+                FL.State.activePlayers[source] = nil
             end
         end
     end
