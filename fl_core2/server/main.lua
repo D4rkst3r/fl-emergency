@@ -144,16 +144,6 @@ function FL.IsPlayerOnDuty(source)
     return Player.PlayerData.job.onduty or false
 end
 
-function FL.GetPlayerRank(source, service)
-    local Player = QBCore.Functions.GetPlayer(source)
-    if not Player then return 0 end
-
-    if Player.PlayerData.job.name == Config.Services[service].job then
-        return Player.PlayerData.job.grade.level or 0
-    end
-    return 0
-end
-
 function FL.Broadcast(event, data, service)
     if service then
         -- Nur an Spieler des jeweiligen Service
